@@ -9,10 +9,13 @@ import {
   Save
 } from 'lucide-react';
 import { GeminiIcebreaker } from './GeminiComponents';
+import { sendPassEmail } from '../utils/emailService';
 
 // GeneratedCard Component
 export const GeneratedCard = ({ person, onClose }) => {
   const cardContentRef = useRef(null);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState(null); // 'success', 'error', or null
 
   if (!person) return null;
 
@@ -35,6 +38,69 @@ const handleDownload = () => {
     });
   } else {
     console.error("html-to-image script not loaded yet or failed to load.");
+  }
+};
+
+const handleSendEmail = async () => {
+  if (!cardContentRef.current || typeof window.htmlToImage?.toPng !== 'function') {
+    console.error("html-to-image script not loaded yet or failed to load.");
+    setEmailStatus('error');
+    setTimeout(() => setEmailStatus(null), 3000);
+    return;
+  }
+
+  setEmailSending(true);
+  setEmailStatus(null);
+
+  try {
+    // Generate PNG from the card
+    const passImageBase64 = await window.htmlToImage.toPng(cardContentRef.current, {
+      backgroundColor: '#f0f9ff',
+      pixelRatio: 2,
+      cacheBust: true
+    });
+
+    const admissionTime = person.admittedAt 
+      ? new Date(person.admittedAt).toLocaleTimeString('en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: true, 
+          timeZone: 'Asia/Kolkata' 
+        })
+      : 'N/A';
+
+    // Send email with the generated pass
+    await sendPassEmail({
+      email: person.email,
+      name: person.name,
+      subject: 'Workshop Check-in Confirmation - Your Pass',
+      text: `Hello ${person.name},\n\nThank you for checking in to the workshop!\n\nYour workshop pass is attached to this email. Please keep it for your records.\n\nWorkshop Details:\n- Department: ${person.department}\n- Year: ${person.year}\n- Refreshment: ${person.diet || 'Not Specified'}\n- Admission Time: ${admissionTime}\n\nBest regards,\nWorkshop Team`,
+      html: `
+        <p>Hello <strong>${person.name}</strong>,</p>
+        <p>Thank you for checking in to the workshop!</p>
+        <p>Your workshop pass is attached to this email. Please keep it for your records.</p>
+        <h3>Workshop Details:</h3>
+        <ul>
+          <li><strong>Department:</strong> ${person.department}</li>
+          <li><strong>Year:</strong> ${person.year}</li>
+          <li><strong>Refreshment:</strong> ${person.diet || 'Not Specified'}</li>
+          <li><strong>Admission Time:</strong> ${admissionTime}</li>
+        </ul>
+        <p>Best regards,<br><strong>Workshop Team</strong></p>
+      `,
+      filename: `${person.name.replace(/ /g, '_').toLowerCase()}_workshop_pass.png`,
+      attachmentBase64: passImageBase64
+    });
+
+    console.log(`Pass email sent to ${person.email}`);
+    setEmailStatus('success');
+    setTimeout(() => setEmailStatus(null), 3000);
+  } catch (error) {
+    console.error(`Failed to send pass email to ${person.email}`, error);
+    setEmailStatus('error');
+    setTimeout(() => setEmailStatus(null), 3000);
+  } finally {
+    setEmailSending(false);
   }
 };
   
@@ -137,15 +203,42 @@ const handleDownload = () => {
         </div>
       </div>
 
-      <div className="mt-4 text-center">
+      <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
         <button
           onClick={handleDownload}
-          className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200"
+          className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200"
         >
           <Download className="h-5 w-5 mr-2" />
           Download Pass
         </button>
+        
+        <button
+          onClick={handleSendEmail}
+          disabled={emailSending}
+          className={`inline-flex items-center justify-center px-6 py-3 font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-200 ${
+            emailSending 
+              ? 'bg-gray-400 text-white cursor-not-allowed' 
+              : emailStatus === 'success'
+              ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
+              : emailStatus === 'error'
+              ? 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
+              : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+          }`}
+        >
+          <Mail className="h-5 w-5 mr-2" />
+          {emailSending ? 'Sending...' : emailStatus === 'success' ? 'Email Sent!' : emailStatus === 'error' ? 'Failed' : 'Send via Email'}
+        </button>
       </div>
+      
+      {emailStatus && (
+        <div className={`mt-3 text-center text-sm font-medium ${
+          emailStatus === 'success' ? 'text-green-600' : 'text-red-600'
+        }`}>
+          {emailStatus === 'success' 
+            ? `✓ Pass sent to ${person.email}` 
+            : '✗ Failed to send email. Please try again.'}
+        </div>
+      )}
     </div>
   );
 };
