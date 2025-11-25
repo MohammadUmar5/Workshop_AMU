@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Search, UserPlus, LogOut, Sparkles, Award } from "lucide-react";
 import { generateAndSendPass } from './utils/passGenerator';
+import { generateAndSendCertificate } from './utils/certificateGenerator';
 
 // Import constants
 import { WORKSHOP_CAPACITY } from "./constants/constants";
@@ -73,6 +74,11 @@ held on ${new Date().toLocaleDateString("en-IN", {
   const [certBorder, setCertBorder] = useState("simple"); // [NEW] Border style
   const [certTitleFont, setCertTitleFont] = useState("elegant-serif"); // [NEW] Title font
   const [certificateThreshold, setCertificateThreshold] = useState(0); // In minutes
+
+  // --- Certificate Sending Status ---
+  const [certificatesSending, setCertificatesSending] = useState(false);
+  const [_certificatesSent, setCertificatesSent] = useState(0);
+  const [_certificatesFailed, setCertificatesFailed] = useState(0);
 
   //load html-to-image script
   useEffect(() => {
@@ -234,6 +240,63 @@ held on ${new Date().toLocaleDateString("en-IN", {
     certificateThreshold,
     workshopDurationInSeconds,
   ]);
+
+  // --- Auto-send Certificates When Workshop Finishes ---
+  useEffect(() => {
+    const sendCertificatesToEligible = async () => {
+      if (workshopState !== "finished" || eligibleForCertificate.length === 0) {
+        return;
+      }
+
+      // Check if we've already started sending (prevent duplicate sends)
+      if (certificatesSending) {
+        return;
+      }
+
+      setCertificatesSending(true);
+      setCertificatesSent(0);
+      setCertificatesFailed(0);
+
+      console.log(`Starting to send certificates to ${eligibleForCertificate.length} eligible participants...`);
+
+      const certificateConfig = {
+        certBody,
+        nameFont,
+        sigFont,
+        certBg,
+        certBorder,
+        certTitleFont
+      };
+
+      let sent = 0;
+      let failed = 0;
+
+      for (const participant of eligibleForCertificate) {
+        try {
+          const success = await generateAndSendCertificate(participant, certificateConfig);
+          if (success) {
+            sent++;
+            setCertificatesSent(sent);
+          } else {
+            failed++;
+            setCertificatesFailed(failed);
+          }
+          // Small delay between sends to avoid overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(`Error sending certificate to ${participant.name}:`, error);
+          failed++;
+          setCertificatesFailed(failed);
+        }
+      }
+
+      setCertificatesSending(false);
+      console.log(`Certificate sending complete: ${sent} sent, ${failed} failed`);
+    };
+
+    sendCertificatesToEligible();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workshopState, eligibleForCertificate]);
 
   // --- [MODIFIED] Handle Start Workshop ---
   const handleStartWorkshop = () => {
