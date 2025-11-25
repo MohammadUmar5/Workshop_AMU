@@ -40,27 +40,27 @@ export const CertificateGenerator = ({ person, onClose, certBody, nameFont, sigF
 
   // --- Download Handler ---
   const handleDownload = () => {
-    if (certificateRef.current && typeof window.html2canvas === 'function') {
-      const bgColor = colorPalette.find(c => c.name === certBg)?.hex || '#FFFFFF';
-      window.html2canvas(certificateRef.current, {
-        backgroundColor: bgColor,
-        scale: 2,
-        useCORS: true
-      }).then((canvas) => {
-        const dataUrl = canvas.toDataURL('image/png');
-        
-        const link = document.createElement('a');
-        const fileName = person.name.replace(/ /g, '_').toLowerCase();
-        link.href = dataUrl;
-        link.download = `${fileName}_certificate.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-    } else {
-      console.error("html2canvas script not loaded yet or failed to load.");
-    }
-  };
+  if (certificateRef.current && typeof window.htmlToImage?.toPng === 'function') {
+    const bgColor = colorPalette.find(c => c.name === certBg)?.hex || '#FFFFFF';
+    window.htmlToImage.toPng(certificateRef.current, {
+      backgroundColor: bgColor,
+      pixelRatio: 2, // Equivalent to scale: 2
+      cacheBust: true
+    }).then((dataUrl) => {
+      const link = document.createElement('a');
+      const fileName = person.name.replace(/ /g, '_').toLowerCase();
+      link.href = dataUrl;
+      link.download = `${fileName}_certificate.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }).catch((error) => {
+      console.error("html-to-image error:", error);
+    });
+  } else {
+    console.error("html-to-image script not loaded yet or failed to load.");
+  }
+};
 
   // Font class logic
   const getFontClass = (fontValue) => {

@@ -16,26 +16,27 @@ export const GeneratedCard = ({ person, onClose }) => {
 
   if (!person) return null;
 
-  const handleDownload = () => {
-    if (cardContentRef.current && typeof window.html2canvas === 'function') {
-      window.html2canvas(cardContentRef.current, {
-        backgroundColor: '#f0f9ff',
-        scale: 2,
-        useCORS: true
-      }).then((canvas) => {
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        const fileName = person.name.replace(/ /g, '_').toLowerCase();
-        link.download = `${fileName}_workshop_pass.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-    } else {
-      console.error("html2canvas script not loaded yet or failed to load.");
-    }
-  };
+const handleDownload = () => {
+  if (cardContentRef.current && typeof window.htmlToImage?.toPng === 'function') {
+    window.htmlToImage.toPng(cardContentRef.current, {
+      backgroundColor: '#f0f9ff',
+      pixelRatio: 2, // Equivalent to scale: 2
+      cacheBust: true
+    }).then((dataUrl) => {
+      const link = document.createElement('a');
+      const fileName = person.name.replace(/ /g, '_').toLowerCase();
+      link.href = dataUrl;
+      link.download = `${fileName}_workshop_pass.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }).catch((error) => {
+      console.error("html-to-image error:", error);
+    });
+  } else {
+    console.error("html-to-image script not loaded yet or failed to load.");
+  }
+};
   
   const admissionTime = person.admittedAt 
     ? new Date(person.admittedAt).toLocaleTimeString('en-IN', { 

@@ -63,23 +63,21 @@ held on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long'
   const [certTitleFont, setCertTitleFont] = useState('elegant-serif'); // [NEW] Title font
   const [certificateThreshold, setCertificateThreshold] = useState(0); // In minutes
 
-
-  // Load html2canvas script
-  useEffect(() => {
-    const scriptId = 'html2canvas-script';
-    if (document.getElementById(scriptId)) return;
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-    script.async = true;
-    document.head.appendChild(script);
-    return () => {
-      const loadedScript = document.getElementById(scriptId);
-      if (loadedScript) {
-        document.head.removeChild(loadedScript);
-      }
-    };
-  }, []);
+//load html-to-image script
+useEffect(() => {
+  const scriptId = 'html-to-image-script';
+  if (document.getElementById(scriptId)) return;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
+  script.async = true;
+  document.head.appendChild(script);
+  return () => {
+    const loadedScript = document.getElementById(scriptId);
+    if (loadedScript) {
+      document.head.removeChild(loadedScript);
+    }
+  };
+}, []);
 
   // --- Workshop Timer Logic ---
   useEffect(() => {
