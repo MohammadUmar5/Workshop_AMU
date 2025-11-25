@@ -1,24 +1,28 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, UserPlus, LogOut, Sparkles, Award } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from "react";
+import { Search, UserPlus, LogOut, Sparkles, Award } from "lucide-react";
+import { sendPassEmail } from "./utils/emailService";
 
 // Import constants
-import { WORKSHOP_CAPACITY } from './constants/constants';
+import { WORKSHOP_CAPACITY } from "./constants/constants";
 
 // Import components
-import { GeminiAnnouncementGenerator, GeminiWorkshopSummary } from './components/GeminiComponents';
-import { 
-  CertificateGenerator, 
-  CertificateDesigner, 
-  CertificateList 
-} from './components/CertificateComponents';
+import {
+  GeminiAnnouncementGenerator,
+  GeminiWorkshopSummary,
+} from "./components/GeminiComponents";
+import {
+  CertificateGenerator,
+  CertificateDesigner,
+  CertificateList,
+} from "./components/CertificateComponents";
 import {
   GeneratedCard,
   SearchResults,
   EarlyLeaveSearchResults,
   StatusMessage,
   OnSpotRegistration,
-  EarlyLeaveModal
-} from './components/CheckinComponents';
+  EarlyLeaveModal,
+} from "./components/CheckinComponents";
 import {
   WorkshopControl,
   ErrorMessage,
@@ -26,77 +30,89 @@ import {
   AbsentList,
   EarlyLeaveList,
   DataLoader,
-  DownloadReports
-} from './components/DashboardComponents';
+  DownloadReports,
+} from "./components/DashboardComponents";
 
 // --- Main App Component ---
 export default function App() {
   const [registrants, setRegistrants] = useState([]); // [MODIFIED] Start with empty data
   const [dataLoaded, setDataLoaded] = useState(false); // [NEW] State to control UI
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [earlyLeaveSearchQuery, setEarlyLeaveSearchQuery] = useState(''); // [NEW]
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [earlyLeaveSearchQuery, setEarlyLeaveSearchQuery] = useState(""); // [NEW]
   const [currentCard, setCurrentCard] = useState(null);
   const [personToCertify, setPersonToCertify] = useState(null); // [NEW] For certificate modal
   const [personLeaving, setPersonLeaving] = useState(null); // [NEW] For early leave modal
-  
+
   // --- Workshop State ---
-  const [workshopState, setWorkshopState] = useState('idle'); // 'idle', 'active', 'finished'
+  const [workshopState, setWorkshopState] = useState("idle"); // 'idle', 'active', 'finished'
   const [workshopEndTime, setWorkshopEndTime] = useState(null);
-  
+
   const [durationHours, setDurationHours] = useState(2);
   const [durationMinutes, setDurationMinutes] = useState(30);
-  
-  const [timeLeft, setTimeLeft] = useState((durationHours * 3600) + (durationMinutes * 60)); 
-  
-  const [errorMessage, setErrorMessage] = useState('');
-  
-  const [currentView, setCurrentView] = useState('checkin'); // 'checkin', 'onspot', 'early_leave', 'ai', 'certificates'
-  
+
+  const [timeLeft, setTimeLeft] = useState(
+    durationHours * 3600 + durationMinutes * 60
+  );
+
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [currentView, setCurrentView] = useState("checkin"); // 'checkin', 'onspot', 'early_leave', 'ai', 'certificates'
+
   // --- [NEW] Certificate Design State ---
-  const [certBody, setCertBody] = useState(`For successfully participating in the "Mini Workshop on Physics"
-held on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.`);
-  const [nameFont, setNameFont] = useState('cursive'); // Participant Name font
-  const [sigFont, setSigFont] = useState('cursive');   // Signature font
-  const [certBg, setCertBg] = useState('White');     // Background color by name
-  const [certBorder, setCertBorder] = useState('simple'); // [NEW] Border style
-  const [certTitleFont, setCertTitleFont] = useState('elegant-serif'); // [NEW] Title font
+  const [certBody, setCertBody] =
+    useState(`For successfully participating in the "Mini Workshop on Physics"
+held on ${new Date().toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })}.`);
+  const [nameFont, setNameFont] = useState("cursive"); // Participant Name font
+  const [sigFont, setSigFont] = useState("cursive"); // Signature font
+  const [certBg, setCertBg] = useState("White"); // Background color by name
+  const [certBorder, setCertBorder] = useState("simple"); // [NEW] Border style
+  const [certTitleFont, setCertTitleFont] = useState("elegant-serif"); // [NEW] Title font
   const [certificateThreshold, setCertificateThreshold] = useState(0); // In minutes
 
-//load html-to-image script
-useEffect(() => {
-  const scriptId = 'html-to-image-script';
-  if (document.getElementById(scriptId)) return;
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
-  script.async = true;
-  document.head.appendChild(script);
-  return () => {
-    const loadedScript = document.getElementById(scriptId);
-    if (loadedScript) {
-      document.head.removeChild(loadedScript);
-    }
-  };
-}, []);
+  //load html-to-image script
+  useEffect(() => {
+    const scriptId = "html-to-image-script";
+    if (document.getElementById(scriptId)) return;
+    const script = document.createElement("script");
+    script.src =
+      "https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js";
+    script.async = true;
+    document.head.appendChild(script);
+    return () => {
+      const loadedScript = document.getElementById(scriptId);
+      if (loadedScript) {
+        document.head.removeChild(loadedScript);
+      }
+    };
+  }, []);
 
   // --- Workshop Timer Logic ---
   useEffect(() => {
-    if (workshopState !== 'active' || !workshopEndTime) {
+    if (workshopState !== "active" || !workshopEndTime) {
       return;
     }
 
     const interval = setInterval(() => {
       const now = new Date();
-      const secondsRemaining = Math.round((workshopEndTime.getTime() - now.getTime()) / 1000);
+      const secondsRemaining = Math.round(
+        (workshopEndTime.getTime() - now.getTime()) / 1000
+      );
 
       if (secondsRemaining <= 0) {
         clearInterval(interval);
-        setWorkshopState('finished');
+        setWorkshopState("finished");
         setTimeLeft(0);
         // Mark all remaining 'pending' as 'absent'
-        setRegistrants(prevRegistrants => 
-          prevRegistrants.map(person => 
-            person.status === 'pending' ? { ...person, status: 'absent' } : person
+        setRegistrants((prevRegistrants) =>
+          prevRegistrants.map((person) =>
+            person.status === "pending"
+              ? { ...person, status: "absent" }
+              : person
           )
         );
       } else {
@@ -111,94 +127,113 @@ useEffect(() => {
   const searchLogic = useMemo(() => {
     const lowerCaseQuery = searchQuery.toLowerCase().trim();
     if (!lowerCaseQuery) {
-      return { status: 'idle', results: [] };
+      return { status: "idle", results: [] };
     }
     // Only search 'pending' participants
-    const pendingRegistrants = registrants.filter(p => p.status === 'pending');
-    const filteredResults = pendingRegistrants.filter(person =>
-      person.name.toLowerCase().includes(lowerCaseQuery) ||
-      person.email.toLowerCase().includes(lowerCaseQuery) ||
-      person.phone.toLowerCase().includes(lowerCaseQuery)
+    const pendingRegistrants = registrants.filter(
+      (p) => p.status === "pending"
     );
-    return { 
-      status: filteredResults.length > 0 ? 'found' : 'notFound', 
-      results: filteredResults 
+    const filteredResults = pendingRegistrants.filter(
+      (person) =>
+        person.name.toLowerCase().includes(lowerCaseQuery) ||
+        person.email.toLowerCase().includes(lowerCaseQuery) ||
+        person.phone.toLowerCase().includes(lowerCaseQuery)
+    );
+    return {
+      status: filteredResults.length > 0 ? "found" : "notFound",
+      results: filteredResults,
     };
   }, [searchQuery, registrants]);
-  
+
   // --- [NEW] Early Leave Search Logic ---
   const earlyLeaveSearchLogic = useMemo(() => {
     const lowerCaseQuery = earlyLeaveSearchQuery.toLowerCase().trim();
     if (!lowerCaseQuery) {
-      return { status: 'idle', results: [] };
+      return { status: "idle", results: [] };
     }
     // Only search 'admitted' participants
-    const admittedRegistrants = registrants.filter(p => p.status === 'admitted');
-    const filteredResults = admittedRegistrants.filter(person =>
-      person.name.toLowerCase().includes(lowerCaseQuery) ||
-      person.email.toLowerCase().includes(lowerCaseQuery) ||
-      person.phone.toLowerCase().includes(lowerCaseQuery)
+    const admittedRegistrants = registrants.filter(
+      (p) => p.status === "admitted"
     );
-    return { 
-      status: filteredResults.length > 0 ? 'found' : 'notFound', 
-      results: filteredResults 
+    const filteredResults = admittedRegistrants.filter(
+      (person) =>
+        person.name.toLowerCase().includes(lowerCaseQuery) ||
+        person.email.toLowerCase().includes(lowerCaseQuery) ||
+        person.phone.toLowerCase().includes(lowerCaseQuery)
+    );
+    return {
+      status: filteredResults.length > 0 ? "found" : "notFound",
+      results: filteredResults,
     };
   }, [earlyLeaveSearchQuery, registrants]);
-
 
   // --- Memoized Participant Lists & Capacity ---
   const admittedPeople = useMemo(() => {
     return registrants
-      .filter(p => p.status === 'admitted')
+      .filter((p) => p.status === "admitted")
       .sort((a, b) => new Date(a.admittedAt) - new Date(b.admittedAt)); // Sort by admission time
   }, [registrants]);
-  
+
   const absentPeople = useMemo(() => {
-    return registrants.filter(p => p.status === 'absent');
+    return registrants.filter((p) => p.status === "absent");
   }, [registrants]);
-  
+
   const earlyLeavers = useMemo(() => {
     return registrants
-      .filter(p => p.status === 'left_early')
+      .filter((p) => p.status === "left_early")
       .sort((a, b) => new Date(a.leftAt) - new Date(b.leftAt));
   }, [registrants]);
-  
+
   const onSpotCount = useMemo(() => {
     // Count on-spot from both admitted and early-leavers
-    return registrants.filter(p => (p.status === 'admitted' || p.status === 'left_early') && p.onSpot).length;
+    return registrants.filter(
+      (p) => (p.status === "admitted" || p.status === "left_early") && p.onSpot
+    ).length;
   }, [registrants]);
-  
+
   // [MODIFIED] Capacity now checks admitted + left_early
   const totalOccupiedCount = useMemo(() => {
-    return registrants.filter(p => p.status === 'admitted' || p.status === 'left_early').length;
+    return registrants.filter(
+      (p) => p.status === "admitted" || p.status === "left_early"
+    ).length;
   }, [registrants]);
-  const capacityReached = useMemo(() => totalOccupiedCount >= WORKSHOP_CAPACITY, [totalOccupiedCount]);
-  
+  const capacityReached = useMemo(
+    () => totalOccupiedCount >= WORKSHOP_CAPACITY,
+    [totalOccupiedCount]
+  );
+
   // [NEW] Workshop duration in seconds
   const workshopDurationInSeconds = useMemo(() => {
     const hours = parseInt(durationHours, 10) || 0;
     const minutes = parseInt(durationMinutes, 10) || 0;
-    return (hours * 3600) + (minutes * 60);
+    return hours * 3600 + minutes * 60;
   }, [durationHours, durationMinutes]);
 
   // [NEW] Certificate Eligibility Logic
   const eligibleForCertificate = useMemo(() => {
     const thresholdInSeconds = (parseInt(certificateThreshold, 10) || 0) * 60;
     const minimumStayDuration = workshopDurationInSeconds - thresholdInSeconds;
-    
+
     // 1. All participants who stayed the whole time
     const fullTime = admittedPeople;
-    
+
     // 2. Participants who left early but met the threshold
-    const eligibleEarlyLeavers = earlyLeavers.filter(person => {
+    const eligibleEarlyLeavers = earlyLeavers.filter((person) => {
       if (!person.admittedAt || !person.leftAt) return false;
-      const stayDuration = (new Date(person.leftAt).getTime() - new Date(person.admittedAt).getTime()) / 1000;
+      const stayDuration =
+        (new Date(person.leftAt).getTime() -
+          new Date(person.admittedAt).getTime()) /
+        1000;
       return stayDuration >= minimumStayDuration;
     });
-    
-    return [...fullTime, ...eligibleEarlyLeavers];
-  }, [admittedPeople, earlyLeavers, certificateThreshold, workshopDurationInSeconds]);
 
+    return [...fullTime, ...eligibleEarlyLeavers];
+  }, [
+    admittedPeople,
+    earlyLeavers,
+    certificateThreshold,
+    workshopDurationInSeconds,
+  ]);
 
   // --- [MODIFIED] Handle Start Workshop ---
   const handleStartWorkshop = () => {
@@ -208,64 +243,213 @@ useEffect(() => {
     }
 
     const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + workshopDurationInSeconds * 1000); 
+    const endTime = new Date(
+      startTime.getTime() + workshopDurationInSeconds * 1000
+    );
     setWorkshopEndTime(endTime);
-    setWorkshopState('active');
-    setTimeLeft(workshopDurationInSeconds); 
+    setWorkshopState("active");
+    setTimeLeft(workshopDurationInSeconds);
   };
-  
+
   const showErrorMessage = (message) => {
     setErrorMessage(message);
-    setTimeout(() => setErrorMessage(''), 3000); // Clear error after 3s
+    setTimeout(() => setErrorMessage(""), 3000); // Clear error after 3s
   };
 
+  // --- [NEW] Generate and Send Pass via Email ---
+ const generateAndSendPass = async (participant) => {
+  try {
+    const admissionTime = participant.admittedAt 
+      ? new Date(participant.admittedAt).toLocaleTimeString('en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: true, 
+          timeZone: 'Asia/Kolkata' 
+        })
+      : 'N/A';
+    
+    // Create a temporary container
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    
+    // Create the card with proper structure
+    const card = document.createElement('div');
+    card.style.cssText = `
+      width: 800px;
+      padding: 24px;
+      background-color: #eff6ff;
+      border: 2px solid #60a5fa;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    `;
+    
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; padding-bottom: 16px; border-bottom: 2px solid #bfdbfe; margin-bottom: 20px;">
+        <svg style="width: 40px; height: 40px; color: #2563eb; margin-right: 16px; flex-shrink: 0;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <div>
+          <div style="font-size: 24px; font-weight: bold; color: #1e3a8a; margin-bottom: 4px;">${participant.name}</div>
+          <div style="font-size: 18px; font-weight: 500; color: #1d4ed8;">Has Been Admitted</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; padding: 16px; background-color: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+        <div style="font-size: 14px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Refreshment Preference</div>
+        <div style="display: flex; align-items: center; font-size: 24px; font-weight: bold; color: #4f46e5;">
+          <span style="margin-right: 12px;">☕</span>
+          <span>${participant.diet || 'Not Specified'}</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; color: #1f2937; font-size: 16px;">
+        <div style="display: flex; align-items: center;">
+          <span style="margin-right: 12px; font-size: 20px;">🏢</span>
+          <strong>${participant.department}</strong>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <span style="margin-right: 12px; font-size: 20px;">📚</span>
+          <span>Year: <b>${participant.year}</b></span>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <span style="margin-right: 12px; font-size: 20px;">📞</span>
+          <span>${participant.phone}</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <span style="margin-right: 12px; font-size: 20px;">✉️</span>
+          <span style="word-break: break-all; overflow-wrap: break-word;">${participant.email}</span>
+        </div>
+        <div style="display: flex; align-items: center; grid-column: 1 / -1;">
+          <span style="margin-right: 12px; font-size: 20px;">🕐</span>
+          <span>Admitted at: <b>${admissionTime}</b></span>
+        </div>
+      </div>
+      
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 2px solid #bfdbfe; display: flex; align-items: center; justify-content: space-between;">
+        <img 
+          src="https://upload.wikimedia.org/wikipedia/en/7/7c/Logo-aps-no-tagline.svg" 
+          alt="APS Logo" 
+          style="height: 36px; width: auto;"
+        />
+        <img 
+          src="https://olympiaacademia.github.io/images/logo.png" 
+          alt="Olympia Academia Logo" 
+          style="height: 40px; width: auto;"
+        />
+      </div>
+    `;
+    
+    container.appendChild(card);
+    document.body.appendChild(container);
+    
+    // Wait longer for images and fonts to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Generate PNG
+    const passImageBase64 = await window.htmlToImage.toPng(card, {
+      backgroundColor: '#eff6ff',
+      pixelRatio: 2,
+      cacheBust: true,
+      width: 800,
+      height: card.offsetHeight || 600
+    });
+    
+    // Remove temporary element
+    document.body.removeChild(container);
+    
+    // Send email with attachment
+    await sendPassEmail({
+      email: participant.email,
+      name: participant.name,
+      subject: 'Workshop Check-in Confirmation - Your Pass',
+      text: `Hello ${participant.name},\n\nThank you for checking in to the workshop!\n\nYour workshop pass is attached to this email. Please keep it for your records.\n\nWorkshop Details:\n- Department: ${participant.department}\n- Year: ${participant.year}\n- Refreshment: ${participant.diet || 'Not Specified'}\n- Admission Time: ${admissionTime}\n\nBest regards,\nWorkshop Team`,
+      html: `
+        <p>Hello <strong>${participant.name}</strong>,</p>
+        <p>Thank you for checking in to the workshop!</p>
+        <p>Your workshop pass is attached to this email. Please keep it for your records.</p>
+        <h3>Workshop Details:</h3>
+        <ul>
+          <li><strong>Department:</strong> ${participant.department}</li>
+          <li><strong>Year:</strong> ${participant.year}</li>
+          <li><strong>Refreshment:</strong> ${participant.diet || 'Not Specified'}</li>
+          <li><strong>Admission Time:</strong> ${admissionTime}</li>
+        </ul>
+        <p>Best regards,<br><strong>Workshop Team</strong></p>
+      `,
+      filename: `${participant.name.replace(/ /g, '_').toLowerCase()}_workshop_pass.png`,
+      attachmentBase64: passImageBase64
+    });
+
+    console.log(`Pass sent to ${participant.email}`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to send pass email to ${participant.email}`, error);
+    return false;
+  }
+};
   // --- Handle Validation ---
-  const handleValidate = (personId) => {
-    if (workshopState !== 'active') {
-      return showErrorMessage('Workshop is not active. Cannot admit participants.');
+  const handleValidate = async (personId) => {
+    if (workshopState !== "active") {
+      return showErrorMessage("Workshop is not active.");
     }
     if (capacityReached) {
-      return showErrorMessage('Workshop is at full capacity. Cannot admit.');
+      return showErrorMessage("Workshop is at full capacity.");
     }
-    
-    let validatedPerson = null;
-    const admissionTime = new Date(); 
 
-    const updatedRegistrants = registrants.map(person => {
+    const admissionTime = new Date();
+    let validatedPerson = null;
+
+    const updatedRegistrants = registrants.map((person) => {
       if (person.id === personId) {
-        validatedPerson = { ...person, status: 'admitted', admittedAt: admissionTime }; 
+        validatedPerson = {
+          ...person,
+          status: "admitted",
+          admittedAt: admissionTime,
+        };
         return validatedPerson;
       }
       return person;
     });
 
     setRegistrants(updatedRegistrants);
-    setCurrentCard(validatedPerson); 
-    setSearchQuery(''); 
+    setCurrentCard(validatedPerson);
+    setSearchQuery("");
+
+    // ✅ NEW: Auto-send pass via email
+    setTimeout(async () => {
+      await generateAndSendPass(validatedPerson);
+    }, 500); // Small delay for render
   };
-  
+
   // --- [NEW] Handle On-Spot Registration ---
-  const handleOnSpotRegister = (personData) => {
-    if (workshopState !== 'active') {
-      return showErrorMessage('Workshop is not active. Cannot register participants.');
+  const handleOnSpotRegister = async (personData) => {
+    if (workshopState !== "active") {
+      return showErrorMessage("Workshop is not active.");
     }
     if (capacityReached) {
-      return showErrorMessage('Workshop is at full capacity. Cannot register.');
+      return showErrorMessage("Workshop is at full capacity.");
     }
-    
+
     const admissionTime = new Date();
     const newPerson = {
       ...personData,
-      id: 1000 + registrants.length, // Simple unique ID
-      status: 'admitted',
+      id: 1000 + registrants.length,
+      status: "admitted",
       admittedAt: admissionTime,
       leftAt: null,
-      leaveReason: '',
-      onSpot: true
+      leaveReason: "",
+      onSpot: true,
     };
-    
-    setRegistrants(prev => [...prev, newPerson]);
-    setCurrentCard(newPerson); // Show pass for new person
+
+    setRegistrants((prev) => [...prev, newPerson]);
+    setCurrentCard(newPerson);
+
+    // ✅ NEW: Auto-send pass via email
+    setTimeout(async () => {
+      await generateAndSendPass(newPerson);
+    }, 500);
   };
 
   // --- [NEW] Handle Marking Early Leave ---
@@ -275,92 +459,122 @@ useEffect(() => {
 
   const handleSubmitLeaveEarly = (person, reason) => {
     const leaveTime = new Date();
-    
-    setRegistrants(prevRegistrants => 
-      prevRegistrants.map(p => 
+
+    setRegistrants((prevRegistrants) =>
+      prevRegistrants.map((p) =>
         p.id === person.id
-          ? { ...p, status: 'left_early', leftAt: leaveTime, leaveReason: reason }
+          ? {
+              ...p,
+              status: "left_early",
+              leftAt: leaveTime,
+              leaveReason: reason,
+            }
           : p
       )
     );
-    
+
     setPersonLeaving(null); // Close modal
-    setEarlyLeaveSearchQuery(''); // Clear search
+    setEarlyLeaveSearchQuery(""); // Clear search
     showErrorMessage(`${person.name} has been marked as left early.`);
   };
-  
-  
+
   // --- [NEW] CSV Download Logic ---
   const generateCSV = (data, headers, filename) => {
     if (data.length === 0) return;
-    
+
     const escapeField = (field) => {
-      const str = String(field || '');
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      const str = String(field || "");
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
         return `"${str.replace(/"/g, '""')}"`;
       }
       return str;
     };
-      
-    let csvContent = headers.join(',') + '\n';
-    data.forEach(row => {
-      csvContent += row.map(escapeField).join(',') + '\n';
+
+    let csvContent = headers.join(",") + "\n";
+    data.forEach((row) => {
+      csvContent += row.map(escapeField).join(",") + "\n";
     });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-  
-  const formatTimeForCSV = (date) => date 
-    ? new Date(date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) 
-    : 'N/A';
-  
+
+  const formatTimeForCSV = (date) =>
+    date
+      ? new Date(date).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+      : "N/A";
+
   const handleDownloadAdmitted = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Department', 'Year', 'AdmittedAt', 'OnSpot'];
-    const data = admittedPeople.map(p => [
-      p.name, p.email, p.phone, p.department, p.year,
+    const headers = [
+      "Name",
+      "Email",
+      "Phone",
+      "Department",
+      "Year",
+      "AdmittedAt",
+      "OnSpot",
+    ];
+    const data = admittedPeople.map((p) => [
+      p.name,
+      p.email,
+      p.phone,
+      p.department,
+      p.year,
       formatTimeForCSV(p.admittedAt),
-      p.onSpot ? 'Yes' : 'No'
+      p.onSpot ? "Yes" : "No",
     ]);
-    generateCSV(data, headers, 'admitted_participants.csv');
+    generateCSV(data, headers, "admitted_participants.csv");
   };
-  
+
   const handleDownloadAbsentees = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Department', 'Year'];
-    const data = absentPeople.map(p => [
-      p.name, p.email, p.phone, p.department, p.year
+    const headers = ["Name", "Email", "Phone", "Department", "Year"];
+    const data = absentPeople.map((p) => [
+      p.name,
+      p.email,
+      p.phone,
+      p.department,
+      p.year,
     ]);
-    generateCSV(data, headers, 'absent_participants.csv');
+    generateCSV(data, headers, "absent_participants.csv");
   };
 
   // [NEW] Download Early Leavers
   const handleDownloadEarlyLeavers = () => {
-    const headers = ['Name', 'Email', 'Phone', 'AdmittedAt', 'LeftAt', 'LeaveReason', 'OnSpot'];
-    const data = earlyLeavers.map(p => [
-      p.name, p.email, p.phone,
+    const headers = [
+      "Name",
+      "Email",
+      "Phone",
+      "AdmittedAt",
+      "LeftAt",
+      "LeaveReason",
+      "OnSpot",
+    ];
+    const data = earlyLeavers.map((p) => [
+      p.name,
+      p.email,
+      p.phone,
       formatTimeForCSV(p.admittedAt),
       formatTimeForCSV(p.leftAt),
       p.leaveReason,
-      p.onSpot ? 'Yes' : 'No'
+      p.onSpot ? "Yes" : "No",
     ]);
-    generateCSV(data, headers, 'early_leavers.csv');
+    generateCSV(data, headers, "early_leavers.csv");
   };
-  
-  
+
   // --- [NEW] Handler for when data is loaded ---
   const handleDataLoaded = (data) => {
     setRegistrants(data);
     setDataLoaded(true);
   };
-  
+
   // --- [NEW] Handler for certificate modal ---
   const handleGenerateCertificate = (person) => {
     setPersonToCertify(person);
@@ -387,15 +601,14 @@ useEffect(() => {
 
         {/* --- Content Section --- */}
         <div className="p-6 md:p-10">
-          
-          <GeneratedCard 
-            person={currentCard} 
-            onClose={() => setCurrentCard(null)} 
+          <GeneratedCard
+            person={currentCard}
+            onClose={() => setCurrentCard(null)}
           />
-          
+
           {/* [NEW] Certificate Modal Render */}
           {personToCertify && (
-            <CertificateGenerator 
+            <CertificateGenerator
               person={personToCertify}
               onClose={() => setPersonToCertify(null)}
               certBody={certBody}
@@ -415,8 +628,8 @@ useEffect(() => {
               onSubmit={handleSubmitLeaveEarly}
             />
           )}
-          
-          <WorkshopControl 
+
+          <WorkshopControl
             workshopState={workshopState}
             onStart={handleStartWorkshop}
             timeLeft={timeLeft}
@@ -427,26 +640,26 @@ useEffect(() => {
             durationMinutes={durationMinutes}
             setDurationMinutes={setDurationMinutes}
           />
-          
+
           {/* --- [MODIFIED] Tabbed Interface (4 tabs now) --- */}
           <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <button
-              onClick={() => setCurrentView('checkin')}
+              onClick={() => setCurrentView("checkin")}
               className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === 'checkin' 
-                  ? 'bg-indigo-600 text-white shadow' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                currentView === "checkin"
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <Search className="h-5 w-5 mr-2" />
               Check-in
             </button>
             <button
-              onClick={() => setCurrentView('onspot')}
+              onClick={() => setCurrentView("onspot")}
               className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === 'onspot' 
-                  ? 'bg-indigo-600 text-white shadow' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                currentView === "onspot"
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <UserPlus className="h-5 w-5 mr-2" />
@@ -454,55 +667,58 @@ useEffect(() => {
             </button>
             {/* [NEW] Early Leave Tab */}
             <button
-              onClick={() => setCurrentView('early_leave')}
+              onClick={() => setCurrentView("early_leave")}
               className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === 'early_leave' 
-                  ? 'bg-indigo-600 text-white shadow' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                currentView === "early_leave"
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <LogOut className="h-5 w-5 mr-2" />
               Early Leave
             </button>
             <button
-              onClick={() => setCurrentView('ai')}
+              onClick={() => setCurrentView("ai")}
               className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === 'ai' 
-                  ? 'bg-indigo-600 text-white shadow' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                currentView === "ai"
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <Sparkles className="h-5 w-5 mr-2" />
               AI Tools
             </button>
           </div>
-          
+
           {/* [NEW] Third row for Certificates tab, only shows when finished */}
-          {workshopState === 'finished' && (
-              <div className="mb-6">
-                <button
-                  onClick={() => setCurrentView('certificates')}
-                  className={`w-full py-3 px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                    currentView === 'certificates' 
-                      ? 'bg-purple-700 text-white shadow' 
-                      : 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                  }`}
-                >
-                  <Award className="h-5 w-5 mr-2" />
-                  Reports & Certificates
-                </button>
-              </div>
+          {workshopState === "finished" && (
+            <div className="mb-6">
+              <button
+                onClick={() => setCurrentView("certificates")}
+                className={`w-full py-3 px-4 font-semibold rounded-lg flex items-center justify-center transition ${
+                  currentView === "certificates"
+                    ? "bg-purple-700 text-white shadow"
+                    : "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                }`}
+              >
+                <Award className="h-5 w-5 mr-2" />
+                Reports & Certificates
+              </button>
+            </div>
           )}
-          
+
           {/* --- Error Message Display --- */}
           <ErrorMessage message={errorMessage} />
-          
+
           {/* --- [MODIFIED] Conditional Content Area --- */}
-          {currentView === 'checkin' && (
+          {currentView === "checkin" && (
             <div id="checkin-panel">
               {/* --- Search Bar --- */}
               <div>
-                <label htmlFor="search" className="block text-lg font-medium text-gray-800 mb-2">
+                <label
+                  htmlFor="search"
+                  className="block text-lg font-medium text-gray-800 mb-2"
+                >
                   Validate Entrant
                 </label>
                 <div className="relative">
@@ -515,7 +731,7 @@ useEffect(() => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name, email, or phone..."
-                    disabled={workshopState !== 'active' || capacityReached}
+                    disabled={workshopState !== "active" || capacityReached}
                     className="w-full p-4 pl-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -523,44 +739,47 @@ useEffect(() => {
 
               {/* --- Results Section --- */}
               <div className="mt-6">
-                {searchLogic.status === 'found' ? (
-                  <SearchResults 
-                    results={searchLogic.results} 
+                {searchLogic.status === "found" ? (
+                  <SearchResults
+                    results={searchLogic.results}
                     onValidate={handleValidate}
-                    workshopActive={workshopState === 'active'}
+                    workshopActive={workshopState === "active"}
                     capacityReached={capacityReached}
                   />
                 ) : (
-                  <StatusMessage 
-                    status={searchLogic.status} 
-                    query={searchQuery.trim()} 
+                  <StatusMessage
+                    status={searchLogic.status}
+                    query={searchQuery.trim()}
                     type="checkin"
                   />
                 )}
               </div>
-              
+
               {/* --- [MODIFIED] Show Admitted List on Check-in Tab --- */}
-              <AdmittedList 
-                admittedPeople={admittedPeople} 
-                totalCapacity={WORKSHOP_CAPACITY} 
+              <AdmittedList
+                admittedPeople={admittedPeople}
+                totalCapacity={WORKSHOP_CAPACITY}
               />
             </div>
           )}
-          
-          {currentView === 'onspot' && (
-            <OnSpotRegistration 
+
+          {currentView === "onspot" && (
+            <OnSpotRegistration
               onRegister={handleOnSpotRegister}
-              workshopActive={workshopState === 'active'}
+              workshopActive={workshopState === "active"}
               capacityReached={capacityReached}
             />
           )}
 
           {/* [NEW] Early Leave Panel */}
-          {currentView === 'early_leave' && (
-             <div id="early-leave-panel">
+          {currentView === "early_leave" && (
+            <div id="early-leave-panel">
               {/* --- Search Bar --- */}
               <div>
-                <label htmlFor="early-search" className="block text-lg font-medium text-gray-800 mb-2">
+                <label
+                  htmlFor="early-search"
+                  className="block text-lg font-medium text-gray-800 mb-2"
+                >
                   Find Admitted Participant
                 </label>
                 <div className="relative">
@@ -573,7 +792,7 @@ useEffect(() => {
                     value={earlyLeaveSearchQuery}
                     onChange={(e) => setEarlyLeaveSearchQuery(e.target.value)}
                     placeholder="Search by name, email, or phone..."
-                    disabled={workshopState !== 'active'}
+                    disabled={workshopState !== "active"}
                     className="w-full p-4 pl-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -581,16 +800,16 @@ useEffect(() => {
 
               {/* --- Results Section --- */}
               <div className="mt-6">
-                {earlyLeaveSearchLogic.status === 'found' ? (
-                  <EarlyLeaveSearchResults 
-                    results={earlyLeaveSearchLogic.results} 
+                {earlyLeaveSearchLogic.status === "found" ? (
+                  <EarlyLeaveSearchResults
+                    results={earlyLeaveSearchLogic.results}
                     onMarkLeave={handleMarkLeaveEarly}
-                    workshopActive={workshopState === 'active'}
+                    workshopActive={workshopState === "active"}
                   />
                 ) : (
-                  <StatusMessage 
-                    status={earlyLeaveSearchLogic.status} 
-                    query={earlyLeaveSearchQuery.trim()} 
+                  <StatusMessage
+                    status={earlyLeaveSearchLogic.status}
+                    query={earlyLeaveSearchQuery.trim()}
                     type="early_leave"
                   />
                 )}
@@ -601,9 +820,9 @@ useEffect(() => {
           )}
 
           {/* --- [NEW] AI Tools Tab Content --- */}
-          {currentView === 'ai' && (
+          {currentView === "ai" && (
             <div id="ai-tools-panel">
-              {workshopState !== 'finished' ? (
+              {workshopState !== "finished" ? (
                 <GeminiAnnouncementGenerator />
               ) : (
                 <GeminiWorkshopSummary
@@ -615,13 +834,12 @@ useEffect(() => {
               )}
             </div>
           )}
-          
+
           {/* --- [NEW] Certificates Tab Content --- */}
-          {currentView === 'certificates' && workshopState === 'finished' && (
+          {currentView === "certificates" && workshopState === "finished" && (
             <div id="certificates-panel">
-              
               {/* [MODIFIED] Certificate Designer with threshold */}
-              <CertificateDesigner 
+              <CertificateDesigner
                 certBody={certBody}
                 setCertBody={setCertBody}
                 nameFont={nameFont}
@@ -640,7 +858,7 @@ useEffect(() => {
               />
 
               {/* [MODIFIED] Reports moved here, added early leavers */}
-              <DownloadReports 
+              <DownloadReports
                 admitted={admittedPeople}
                 absentees={absentPeople}
                 earlyLeavers={earlyLeavers}
@@ -648,13 +866,13 @@ useEffect(() => {
                 onDownloadAbsentees={handleDownloadAbsentees}
                 onDownloadEarlyLeavers={handleDownloadEarlyLeavers}
               />
-              
+
               {/* [MODIFIED] List now uses eligible people */}
               <CertificateList
                 eligiblePeople={eligibleForCertificate}
                 onGenerateCertificate={handleGenerateCertificate}
               />
-              
+
               {/* [NEW] Absentee list moved here */}
               <AbsentList absentPeople={absentPeople} />
 
@@ -662,7 +880,6 @@ useEffect(() => {
               <EarlyLeaveList earlyLeavers={earlyLeavers} />
             </div>
           )}
-          
         </div>
       </div>
     </div>

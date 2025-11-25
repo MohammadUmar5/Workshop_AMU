@@ -69,6 +69,7 @@ const handleDownload = () => {
 
       <div 
         ref={cardContentRef} 
+        data-pass-card="true"
         className="p-6 bg-blue-50 border-2 border-blue-400 rounded-lg shadow-lg"
       >
         <div className="flex items-center pb-4 border-b border-blue-200">
