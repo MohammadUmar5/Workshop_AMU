@@ -136,13 +136,13 @@ const handleSendEmail = async () => {
       <div 
         ref={cardContentRef} 
         data-pass-card="true"
-        className="p-6 bg-blue-50 border-2 border-blue-400 rounded-lg shadow-lg"
+        className="p-6 bg-white border-2 border-gray-300 rounded-lg shadow-lg"
       >
-        <div className="flex items-center pb-4 border-b border-blue-200">
-          <CheckCircle className="h-10 w-10 text-blue-600 mr-4 flex-shrink-0" />
+        <div className="flex items-center pb-4 border-b border-gray-200">
+          <CheckCircle className="h-10 w-10 text-green-600 mr-4 flex-shrink-0" />
           <div>
-            <h2 className="text-2xl font-bold text-blue-900">{person.name}</h2>
-            <p className="text-lg font-medium text-blue-700">Has Been Admitted</p>
+            <h2 className="text-2xl font-bold text-gray-900">{person.name}</h2>
+            <p className="text-lg font-medium text-gray-700">Has Been Admitted</p>
           </div>
         </div>
 
@@ -245,11 +245,11 @@ const handleSendEmail = async () => {
 
 // SearchResults Component
 export const SearchResults = ({ results, onValidate, workshopActive, capacityReached }) => (
-  <div className="p-4 mt-6 bg-gray-50 border border-gray-200 rounded-lg">
-    <h3 className="text-lg font-semibold text-gray-800">
-      Found {results.length} matching registration(s):
+  <div>
+    <h3 className="text-sm font-semibold text-gray-600 mb-3">
+      {results.length} matching registration{results.length !== 1 ? 's' : ''}
     </h3>
-    <ul className="space-y-3 mt-4">
+    <ul className="space-y-3">
       {results.map((person) => (
         <li 
           key={person.id} 
@@ -282,11 +282,11 @@ export const SearchResults = ({ results, onValidate, workshopActive, capacityRea
 
 // EarlyLeaveSearchResults Component
 export const EarlyLeaveSearchResults = ({ results, onMarkLeave, workshopActive }) => (
-  <div className="p-4 mt-6 bg-gray-50 border border-gray-200 rounded-lg">
-    <h3 className="text-lg font-semibold text-gray-800">
-      Found {results.length} matching admitted participant(s):
+  <div>
+    <h3 className="text-sm font-semibold text-gray-600 mb-3">
+      {results.length} admitted participant{results.length !== 1 ? 's' : ''}
     </h3>
-    <ul className="space-y-3 mt-4">
+    <ul className="space-y-3">
       {results.map((person) => (
         <li 
           key={person.id} 
@@ -321,14 +321,14 @@ export const EarlyLeaveSearchResults = ({ results, onMarkLeave, workshopActive }
 export const StatusMessage = ({ status, query, type = 'checkin' }) => {
   const messages = {
     checkin: {
-      idle: "Please enter a name, email, or phone number to validate a registrant.",
-      notFound: "Status: Not Registered",
-      notFoundQuery: `No match found for query: "${query}"`
+      idle: "Enter name, email, or phone to search",
+      notFound: "Not Registered",
+      notFoundQuery: `No match found for "${query}"`
     },
     early_leave: {
-      idle: "Search for an ADMITTED participant to mark as leaving early.",
-      notFound: "Status: Not Found",
-      notFoundQuery: `No ADMITTED participant found for query: "${query}"`
+      idle: "Search for admitted participant",
+      notFound: "Not Found",
+      notFoundQuery: `No admitted participant found for "${query}"`
     }
   };
   
@@ -336,21 +336,21 @@ export const StatusMessage = ({ status, query, type = 'checkin' }) => {
 
   if (status === 'idle') {
     return (
-      <div className="flex items-center p-4 mt-6 bg-blue-50 border-l-4 border-blue-500 rounded-lg text-blue-700">
-        <UserSearch className="h-6 w-6 mr-3 flex-shrink-0" />
-        <p className="font-medium">{msg.idle}</p>
+      <div className="flex items-center p-3 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm">
+        <UserSearch className="h-5 w-5 mr-2 flex-shrink-0" />
+        <p>{msg.idle}</p>
       </div>
     );
   }
 
   if (status === 'notFound') {
     return (
-      <div className="flex items-center p-4 mt-6 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700">
-        <UserX className="h-6 w-6 mr-3 flex-shrink-0" />
-        <div>
-          <h3 className="text-lg font-bold">{msg.notFound}</h3>
-          <p>{msg.notFoundQuery}</p>
+      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="flex items-center mb-1">
+          <UserX className="h-5 w-5 mr-2 flex-shrink-0" />
+          <h3 className="font-bold text-sm">{msg.notFound}</h3>
         </div>
+        <p className="text-xs ml-7">{msg.notFoundQuery}</p>
       </div>
     );
   }
@@ -392,11 +392,8 @@ export const OnSpotRegistration = ({ onRegister, workshopActive, capacityReached
   const isDisabled = !workshopActive || capacityReached;
 
   return (
-    <div className="p-4 mt-6 bg-gray-50 border border-gray-200 rounded-lg">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
-        On-Spot Registration
-      </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="spot-name" className="block text-sm font-medium text-gray-700">Full Name *</label>

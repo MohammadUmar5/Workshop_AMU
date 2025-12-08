@@ -1,0 +1,231 @@
+import React from "react";
+import {
+  ClipboardCheck,
+  UserPlus,
+  DoorOpen,
+  Clock,
+  Users,
+  TrendingUp,
+} from "lucide-react";
+import {
+  SearchResults,
+  EarlyLeaveSearchResults,
+  StatusMessage,
+  OnSpotRegistration,
+} from "./CheckinComponents";
+import { WorkshopControl } from "./DashboardComponents";
+
+export const UnifiedCheckinView = ({
+  // Search states
+  searchQuery,
+  setSearchQuery,
+  earlyLeaveSearchQuery,
+  setEarlyLeaveSearchQuery,
+
+  // Search results
+  searchLogic,
+  earlyLeaveSearchLogic,
+
+  // Actions
+  onValidate,
+  onOnSpotRegister,
+  onMarkLeaveEarly,
+
+  // Workshop state
+  workshopState,
+  timeLeft,
+  durationHours,
+  durationMinutes,
+  setDurationHours,
+  setDurationMinutes,
+  onStartWorkshop,
+
+  // Capacity
+  capacityReached,
+
+  // Active tab from sidebar
+  activeSubView,
+  setActiveSubView,
+}) => {
+  const workshopActive = workshopState === "active";
+  const activeTab = activeSubView || "checkin";
+
+  const tabs = [
+    { id: "checkin", label: "Check-in", icon: ClipboardCheck },
+    { id: "onspot", label: "On-Spot", icon: UserPlus },
+    { id: "earlyleave", label: "Early Leave", icon: DoorOpen },
+  ];
+
+  const getActiveTabName = () => {
+    const tab = tabs.find((t) => t.id === activeTab);
+    return tab ? tab.label : "Check-in";
+  };
+
+  return (
+    <div className="-mx-6">
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 z-10 bg-white">
+        {/* Top spacing */}
+        <div className="h-4"></div>
+
+        {/* Grey line above header */}
+        <div className="border-t border-gray-200"></div>
+
+        {/* Header with Active Tab Name */}
+        <div className="px-6 py-4">
+          <h1 className="text-3xl font-semibold text-gray-900">
+            {getActiveTabName()}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage workshop participants
+          </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="px-6 flex items-center gap-4 border-b border-gray-200">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSubView(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors relative ${
+                  isActive
+                    ? "text-indigo-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{tab.label}</span>
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Workshop Control Banner with top border */}
+      <div className="border-t border-gray-200 py-6 bg-white">
+        <div className="px-6">
+          <WorkshopControl
+            workshopState={workshopState}
+            onStart={onStartWorkshop}
+            timeLeft={timeLeft}
+            capacityReached={capacityReached}
+            durationHours={durationHours}
+            setDurationHours={setDurationHours}
+            durationMinutes={durationMinutes}
+            setDurationMinutes={setDurationMinutes}
+          />
+        </div>
+      </div>
+
+      {/* Content Area Based on Active Tab */}
+      <div className="px-6 py-6 flex justify-center">
+        <div className="w-full max-w-3xl">
+          {/* Check-in Tab Content */}
+          {activeTab === "checkin" && (
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Admit Pre-Registered Participant
+              </h3>
+              <div>
+                <label
+                  htmlFor="admit-search"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Search Pre-Registered
+                </label>
+                <input
+                  type="text"
+                  id="admit-search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Name, email, or phone..."
+                  disabled={!workshopActive}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="mt-4">
+                {searchLogic.status === "found" ? (
+                  <SearchResults
+                    results={searchLogic.results}
+                    onValidate={onValidate}
+                    workshopActive={workshopActive}
+                    capacityReached={capacityReached}
+                  />
+                ) : (
+                  <StatusMessage
+                    status={searchLogic.status}
+                    query={searchQuery.trim()}
+                    type="checkin"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* On-Spot Tab Content */}
+          {activeTab === "onspot" && (
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Register Walk-in Participant
+              </h3>
+              <OnSpotRegistration
+                onRegister={onOnSpotRegister}
+                workshopActive={workshopActive}
+                capacityReached={capacityReached}
+              />
+            </div>
+          )}
+
+          {/* Early Leave Tab Content */}
+          {activeTab === "earlyleave" && (
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Mark Participant as Left Early
+              </h3>
+              <div>
+                <label
+                  htmlFor="leave-search"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Search Admitted Participant
+                </label>
+                <input
+                  type="text"
+                  id="leave-search"
+                  value={earlyLeaveSearchQuery}
+                  onChange={(e) => setEarlyLeaveSearchQuery(e.target.value)}
+                  placeholder="Name, email, or phone..."
+                  disabled={!workshopActive}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div className="mt-4">
+                {earlyLeaveSearchLogic.status === "found" ? (
+                  <EarlyLeaveSearchResults
+                    results={earlyLeaveSearchLogic.results}
+                    onMarkLeave={onMarkLeaveEarly}
+                    workshopActive={workshopActive}
+                  />
+                ) : (
+                  <StatusMessage
+                    status={earlyLeaveSearchLogic.status}
+                    query={earlyLeaveSearchQuery.trim()}
+                    type="early_leave"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

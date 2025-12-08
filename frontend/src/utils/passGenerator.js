@@ -126,10 +126,10 @@ export const generateAndSendPass = async (participant) => {
       attachmentBase64: passImageBase64
     });
 
-    console.log(`Pass sent to ${participant.email}`);
+    console.log(`Pass sent successfully to ${participant.email}`);
     return true;
   } catch (error) {
-    console.error(`Failed to send pass email to ${participant.email}`, error);
+    console.error(`Failed to send pass email to ${participant.email}:`, error);
     return false;
   }
 };

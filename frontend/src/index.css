@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+/* Apply Roboto font globally */
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Apply Roboto font to all headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Apply Roboto Mono to monospace elements */
+.font-mono {
+  font-family: 'Roboto Mono', monospace;
+}

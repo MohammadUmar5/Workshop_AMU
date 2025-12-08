@@ -18,12 +18,9 @@ import {
 } from "./components/CertificateComponents";
 import {
   GeneratedCard,
-  SearchResults,
-  EarlyLeaveSearchResults,
-  StatusMessage,
-  OnSpotRegistration,
   EarlyLeaveModal,
 } from "./components/CheckinComponents";
+import { UnifiedCheckinView } from "./components/UnifiedCheckinView";
 import {
   WorkshopControl,
   ErrorMessage,
@@ -32,7 +29,9 @@ import {
   EarlyLeaveList,
   DataLoader,
   DownloadReports,
+  Dashboard,
 } from "./components/DashboardComponents";
+import { Sidebar } from "./components/Sidebar";
 
 // --- Main App Component ---
 export default function App() {
@@ -58,7 +57,8 @@ export default function App() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [currentView, setCurrentView] = useState("checkin"); // 'checkin', 'onspot', 'early_leave', 'ai', 'certificates'
+  const [currentView, setCurrentView] = useState("checkin"); // 'checkin', 'ai', 'certificates'
+  const [activeSubView, setActiveSubView] = useState("checkin");
 
   // --- [NEW] Certificate Design State ---
   const [certBody, setCertBody] =
@@ -77,8 +77,13 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- Certificate Sending Status ---
   const [certificatesSending, setCertificatesSending] = useState(false);
-  const [_certificatesSent, setCertificatesSent] = useState(0);
-  const [_certificatesFailed, setCertificatesFailed] = useState(0);
+  const [certificatesSent, setCertificatesSent] = useState(0);
+  const [certificatesFailed, setCertificatesFailed] = useState(0);
+
+  // --- Pass Sending Status ---
+  const [passesSending, setPassesSending] = useState(false);
+  const [passesSent, setPassesSent] = useState(0);
+  const [passesFailed, setPassesFailed] = useState(0);
 
   //load html-to-image script
   useEffect(() => {
@@ -349,7 +354,14 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
     // ✅ NEW: Auto-send pass via email
     setTimeout(async () => {
-      await generateAndSendPass(validatedPerson);
+      setPassesSending(true);
+      const success = await generateAndSendPass(validatedPerson);
+      if (success) {
+        setPassesSent(prev => prev + 1);
+      } else {
+        setPassesFailed(prev => prev + 1);
+      }
+      setPassesSending(false);
     }, 500); // Small delay for render
   };
 
@@ -378,7 +390,14 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
     // ✅ NEW: Auto-send pass via email
     setTimeout(async () => {
-      await generateAndSendPass(newPerson);
+      setPassesSending(true);
+      const success = await generateAndSendPass(newPerson);
+      if (success) {
+        setPassesSent(prev => prev + 1);
+      } else {
+        setPassesFailed(prev => prev + 1);
+      }
+      setPassesSending(false);
     }, 500);
   };
 
@@ -517,20 +536,23 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- [MODIFIED] Main App Render (only happens *after* data is loaded) ---
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden">
-        {/* --- Header Section --- */}
-        <div className="p-8 bg-indigo-600 text-white">
-          <h1 className="text-3xl md:text-4xl font-bold text-center">
-            Workshop Check-In System
-          </h1>
-          <p className="text-center text-indigo-200 mt-2 text-sm">
-            Created by Muneeb Basu
-          </p>
-        </div>
-
-        {/* --- Content Section --- */}
-        <div className="p-6 md:p-10">
+    <div className="min-h-screen bg-white flex font-sans gap-2 pl-0 pr-2 py-0">
+      {/* Sidebar Navigation */}
+      <Sidebar 
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        workshopState={workshopState}
+        activeSubView={activeSubView}
+        setActiveSubView={setActiveSubView}
+      />
+      
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header section moved - will be redesigned in step 3 */}
+        
+        {/* Content wrapper */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
           <GeneratedCard
             person={currentCard}
             onClose={() => setCurrentCard(null)}
@@ -559,194 +581,74 @@ held on ${new Date().toLocaleDateString("en-IN", {
             />
           )}
 
-          <WorkshopControl
-            workshopState={workshopState}
-            onStart={handleStartWorkshop}
-            timeLeft={timeLeft}
-            capacityReached={capacityReached}
-            totalAdmitted={totalOccupiedCount} // [MODIFIED] Show total occupied
-            durationHours={durationHours}
-            setDurationHours={setDurationHours}
-            durationMinutes={durationMinutes}
-            setDurationMinutes={setDurationMinutes}
-          />
-
-          {/* --- [MODIFIED] Tabbed Interface (4 tabs now) --- */}
-          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-            <button
-              onClick={() => setCurrentView("checkin")}
-              className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === "checkin"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <Search className="h-5 w-5 mr-2" />
-              Check-in
-            </button>
-            <button
-              onClick={() => setCurrentView("onspot")}
-              className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === "onspot"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <UserPlus className="h-5 w-5 mr-2" />
-              On-Spot
-            </button>
-            {/* [NEW] Early Leave Tab */}
-            <button
-              onClick={() => setCurrentView("early_leave")}
-              className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === "early_leave"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <LogOut className="h-5 w-5 mr-2" />
-              Early Leave
-            </button>
-            <button
-              onClick={() => setCurrentView("ai")}
-              className={`py-3 px-2 md:px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                currentView === "ai"
-                  ? "bg-indigo-600 text-white shadow"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              <Sparkles className="h-5 w-5 mr-2" />
-              AI Tools
-            </button>
-          </div>
-
-          {/* [NEW] Third row for Certificates tab, only shows when finished */}
-          {workshopState === "finished" && (
-            <div className="mb-6">
-              <button
-                onClick={() => setCurrentView("certificates")}
-                className={`w-full py-3 px-4 font-semibold rounded-lg flex items-center justify-center transition ${
-                  currentView === "certificates"
-                    ? "bg-purple-700 text-white shadow"
-                    : "bg-purple-100 text-purple-800 hover:bg-purple-200"
-                }`}
-              >
-                <Award className="h-5 w-5 mr-2" />
-                Reports & Certificates
-              </button>
-            </div>
-          )}
-
           {/* --- Error Message Display --- */}
           <ErrorMessage message={errorMessage} />
 
-          {/* --- [MODIFIED] Conditional Content Area --- */}
-          {currentView === "checkin" && (
-            <div id="checkin-panel">
-              {/* --- Search Bar --- */}
-              <div>
-                <label
-                  htmlFor="search"
-                  className="block text-lg font-medium text-gray-800 mb-2"
-                >
-                  Validate Entrant
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    id="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by name, email, or phone..."
-                    disabled={workshopState !== "active" || capacityReached}
-                    className="w-full p-4 pl-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              {/* --- Results Section --- */}
-              <div className="mt-6">
-                {searchLogic.status === "found" ? (
-                  <SearchResults
-                    results={searchLogic.results}
-                    onValidate={handleValidate}
-                    workshopActive={workshopState === "active"}
-                    capacityReached={capacityReached}
-                  />
-                ) : (
-                  <StatusMessage
-                    status={searchLogic.status}
-                    query={searchQuery.trim()}
-                    type="checkin"
-                  />
-                )}
-              </div>
-
-              {/* --- [MODIFIED] Show Admitted List on Check-in Tab --- */}
-              <AdmittedList
-                admittedPeople={admittedPeople}
-                totalCapacity={WORKSHOP_CAPACITY}
-              />
-            </div>
-          )}
-
-          {currentView === "onspot" && (
-            <OnSpotRegistration
-              onRegister={handleOnSpotRegister}
-              workshopActive={workshopState === "active"}
+          {/* Dashboard View */}
+          {currentView === "dashboard" && (
+            <Dashboard
+              workshopState={workshopState}
+              timeLeft={timeLeft}
+              workshopEndTime={workshopEndTime}
+              registrants={registrants}
+              admittedPeople={admittedPeople}
+              absentPeople={absentPeople}
+              earlyLeavers={earlyLeavers}
+              onSpotCount={onSpotCount}
+              totalCapacity={WORKSHOP_CAPACITY}
               capacityReached={capacityReached}
+              onDownloadAdmitted={handleDownloadAdmitted}
+              onDownloadAbsentees={handleDownloadAbsentees}
+              onDownloadEarlyLeavers={handleDownloadEarlyLeavers}
+              onImportCSV={() => {
+                setDataLoaded(false);
+                setRegistrants([]);
+              }}
+              passesSent={passesSent}
+              passesFailed={passesFailed}
+              passesSending={passesSending}
+              certificatesSent={certificatesSent}
+              certificatesFailed={certificatesFailed}
+              certificatesSending={certificatesSending}
+              eligibleForCertificate={eligibleForCertificate.length}
             />
           )}
 
-          {/* [NEW] Early Leave Panel */}
-          {currentView === "early_leave" && (
-            <div id="early-leave-panel">
-              {/* --- Search Bar --- */}
-              <div>
-                <label
-                  htmlFor="early-search"
-                  className="block text-lg font-medium text-gray-800 mb-2"
-                >
-                  Find Admitted Participant
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    id="early-search"
-                    value={earlyLeaveSearchQuery}
-                    onChange={(e) => setEarlyLeaveSearchQuery(e.target.value)}
-                    placeholder="Search by name, email, or phone..."
-                    disabled={workshopState !== "active"}
-                    className="w-full p-4 pl-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                </div>
-              </div>
+          {/* Unified Check-in View */}
+          {currentView === "checkin" && (
+            <>
+              <UnifiedCheckinView
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                earlyLeaveSearchQuery={earlyLeaveSearchQuery}
+                setEarlyLeaveSearchQuery={setEarlyLeaveSearchQuery}
+                searchLogic={searchLogic}
+                earlyLeaveSearchLogic={earlyLeaveSearchLogic}
+                onValidate={handleValidate}
+                onOnSpotRegister={handleOnSpotRegister}
+                onMarkLeaveEarly={handleMarkLeaveEarly}
+                workshopState={workshopState}
+                workshopEndTime={workshopEndTime}
+                timeLeft={timeLeft}
+                durationHours={durationHours}
+                durationMinutes={durationMinutes}
+                setDurationHours={setDurationHours}
+                setDurationMinutes={setDurationMinutes}
+                onStartWorkshop={handleStartWorkshop}
+                totalOccupiedCount={totalOccupiedCount}
+                capacityReached={capacityReached}
+                activeSubView={activeSubView}
+                setActiveSubView={setActiveSubView}
+              />
 
-              {/* --- Results Section --- */}
+              {/* Show Admitted List Below */}
               <div className="mt-6">
-                {earlyLeaveSearchLogic.status === "found" ? (
-                  <EarlyLeaveSearchResults
-                    results={earlyLeaveSearchLogic.results}
-                    onMarkLeave={handleMarkLeaveEarly}
-                    workshopActive={workshopState === "active"}
-                  />
-                ) : (
-                  <StatusMessage
-                    status={earlyLeaveSearchLogic.status}
-                    query={earlyLeaveSearchQuery.trim()}
-                    type="early_leave"
-                  />
-                )}
+                <AdmittedList
+                  admittedPeople={admittedPeople}
+                  totalCapacity={WORKSHOP_CAPACITY}
+                />
               </div>
-
-              <EarlyLeaveList earlyLeavers={earlyLeavers} />
-            </div>
+            </>
           )}
 
           {/* --- [NEW] AI Tools Tab Content --- */}
@@ -810,6 +712,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
               <EarlyLeaveList earlyLeavers={earlyLeavers} />
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
