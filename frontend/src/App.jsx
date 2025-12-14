@@ -47,6 +47,7 @@ export default function App() {
   // --- Workshop State ---
   const [workshopState, setWorkshopState] = useState("idle"); // 'idle', 'active', 'finished'
   const [workshopEndTime, setWorkshopEndTime] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   const [durationHours, setDurationHours] = useState(2);
   const [durationMinutes, setDurationMinutes] = useState(30);
@@ -104,7 +105,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- Workshop Timer Logic ---
   useEffect(() => {
-    if (workshopState !== "active" || !workshopEndTime) {
+    if (workshopState !== "active" || !workshopEndTime || isPaused) {
       return;
     }
 
@@ -132,7 +133,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
     }, 1000);
 
     return () => clearInterval(interval); // Cleanup interval on unmount
-  }, [workshopState, workshopEndTime]);
+  }, [workshopState, workshopEndTime, isPaused]);
 
   // --- Search & Filter Logic ---
   const searchLogic = useMemo(() => {
@@ -317,6 +318,30 @@ held on ${new Date().toLocaleDateString("en-IN", {
     setWorkshopEndTime(endTime);
     setWorkshopState("active");
     setTimeLeft(workshopDurationInSeconds);
+    setIsPaused(false);
+  };
+
+  // --- Handle Pause/Resume Workshop ---
+  const handlePauseWorkshop = () => {
+    if (workshopState === "active") {
+      setIsPaused(!isPaused);
+      if (!isPaused) {
+        // Pausing - no need to update end time yet
+      } else {
+        // Resuming - recalculate end time based on timeLeft
+        const now = new Date();
+        const newEndTime = new Date(now.getTime() + timeLeft * 1000);
+        setWorkshopEndTime(newEndTime);
+      }
+    }
+  };
+
+  // --- Handle Reset Workshop ---
+  const handleResetWorkshop = () => {
+    setWorkshopState("idle");
+    setWorkshopEndTime(null);
+    setIsPaused(false);
+    setTimeLeft(durationHours * 3600 + durationMinutes * 60);
   };
 
   const showErrorMessage = (message) => {
@@ -589,7 +614,6 @@ held on ${new Date().toLocaleDateString("en-IN", {
             <Dashboard
               workshopState={workshopState}
               timeLeft={timeLeft}
-              workshopEndTime={workshopEndTime}
               registrants={registrants}
               admittedPeople={admittedPeople}
               absentPeople={absentPeople}
@@ -604,6 +628,13 @@ held on ${new Date().toLocaleDateString("en-IN", {
                 setDataLoaded(false);
                 setRegistrants([]);
               }}
+              onStartWorkshop={handleStartWorkshop}
+              onPauseWorkshop={handlePauseWorkshop}
+              onResetWorkshop={handleResetWorkshop}
+              durationHours={durationHours}
+              setDurationHours={setDurationHours}
+              durationMinutes={durationMinutes}
+              setDurationMinutes={setDurationMinutes}
               passesSent={passesSent}
               passesFailed={passesFailed}
               passesSending={passesSending}
@@ -628,14 +659,6 @@ held on ${new Date().toLocaleDateString("en-IN", {
                 onOnSpotRegister={handleOnSpotRegister}
                 onMarkLeaveEarly={handleMarkLeaveEarly}
                 workshopState={workshopState}
-                workshopEndTime={workshopEndTime}
-                timeLeft={timeLeft}
-                durationHours={durationHours}
-                durationMinutes={durationMinutes}
-                setDurationHours={setDurationHours}
-                setDurationMinutes={setDurationMinutes}
-                onStartWorkshop={handleStartWorkshop}
-                totalOccupiedCount={totalOccupiedCount}
                 capacityReached={capacityReached}
                 activeSubView={activeSubView}
                 setActiveSubView={setActiveSubView}

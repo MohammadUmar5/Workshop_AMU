@@ -20,7 +20,7 @@ export const Sidebar = ({ currentView, setCurrentView, workshopState, activeSubV
   const isCheckinActive = currentView === 'checkin';
 
   return (
-    <div className="w-52 bg-gray-100 rounded-r-2xl flex flex-col h-screen sticky top-0 overflow-y-auto">
+    <div className="w-52 bg-white border-r border-gray-300 flex flex-col h-screen sticky top-0 overflow-y-auto">
       {/* Header with app title */}
       <div className="px-4 py-5 border-b border-gray-200">
         <div className="flex items-center gap-2">

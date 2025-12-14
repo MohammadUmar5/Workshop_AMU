@@ -13,7 +13,6 @@ import {
   StatusMessage,
   OnSpotRegistration,
 } from "./CheckinComponents";
-import { WorkshopControl } from "./DashboardComponents";
 
 export const UnifiedCheckinView = ({
   // Search states
@@ -33,12 +32,6 @@ export const UnifiedCheckinView = ({
 
   // Workshop state
   workshopState,
-  timeLeft,
-  durationHours,
-  durationMinutes,
-  setDurationHours,
-  setDurationMinutes,
-  onStartWorkshop,
 
   // Capacity
   capacityReached,
@@ -104,22 +97,6 @@ export const UnifiedCheckinView = ({
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Workshop Control Banner with top border */}
-      <div className="border-t border-gray-200 py-6 bg-white">
-        <div className="px-6">
-          <WorkshopControl
-            workshopState={workshopState}
-            onStart={onStartWorkshop}
-            timeLeft={timeLeft}
-            capacityReached={capacityReached}
-            durationHours={durationHours}
-            setDurationHours={setDurationHours}
-            durationMinutes={durationMinutes}
-            setDurationMinutes={setDurationMinutes}
-          />
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import {
   PlayCircle,
+  Pause,
+  RotateCcw,
   Users,
   Clock,
   AlertCircle,
@@ -16,10 +18,141 @@ import {
   Upload,
   ArrowUpRight,
   Send,
-  UserCircle,
 } from "lucide-react";
 import { WORKSHOP_CAPACITY } from "../constants/constants";
 import { parseCSV } from "../utils/csvParser";
+
+// Compact Timer Component for Dashboard Profile Section
+export const CompactTimer = ({
+  workshopState,
+  onStart,
+  timeLeft,
+  capacityReached,
+  durationHours,
+  setDurationHours,
+  durationMinutes,
+  setDurationMinutes,
+  onPause,
+  onReset,
+}) => {
+  const formatTime = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  if (workshopState === "idle") {
+    return (
+      <div className="flex flex-col items-center gap-4 w-full">
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            value={durationHours}
+            onChange={(e) => setDurationHours(e.target.value)}
+            className="w-14 p-1.5 text-center text-sm border border-gray-300 rounded-md"
+            placeholder="HH"
+          />
+          <span className="text-sm font-medium text-gray-600">:</span>
+          <input
+            type="number"
+            min="0"
+            max="59"
+            value={durationMinutes}
+            onChange={(e) => setDurationMinutes(e.target.value)}
+            className="w-14 p-1.5 text-center text-sm border border-gray-300 rounded-md"
+            placeholder="MM"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onStart}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <PlayCircle className="h-5 w-5 mr-2" />
+            Start
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (workshopState === "active") {
+    if (capacityReached) {
+      return (
+        <div className="flex flex-col items-center gap-4 w-full">
+          <div className="text-6xl font-mono font-bold text-black">
+            {formatTime(timeLeft)}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onPause}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <Pause className="h-5 w-5 mr-2" />
+              Pause
+            </button>
+            <button
+              onClick={onReset}
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <RotateCcw className="h-5 w-5 mr-2" />
+              Reset
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center gap-4 w-full">
+        <div className="text-6xl font-mono font-bold text-black">
+          {formatTime(timeLeft)}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onPause}
+            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            <Pause className="h-5 w-5 mr-2" />
+            Pause
+          </button>
+          <button
+            onClick={onReset}
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <RotateCcw className="h-5 w-5 mr-2" />
+            Reset
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (workshopState === "finished") {
+    return (
+      <div className="flex flex-col items-center gap-4 w-full">
+        <div className="text-6xl font-mono font-bold text-black">
+          {formatTime(timeLeft)}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onReset}
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <RotateCcw className="h-5 w-5 mr-2" />
+            Reset
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 // WorkshopControl Component
 export const WorkshopControl = ({
@@ -450,7 +583,6 @@ export const Dashboard = ({
   // Workshop state
   workshopState,
   timeLeft,
-  workshopEndTime,
 
   // Participant data
   registrants,
@@ -468,6 +600,15 @@ export const Dashboard = ({
 
   // Import handler
   onImportCSV,
+
+  // Timer handlers
+  onStartWorkshop,
+  onPauseWorkshop,
+  onResetWorkshop,
+  durationHours,
+  setDurationHours,
+  durationMinutes,
+  setDurationMinutes,
 
   // Progress tracking
   passesSent = 0,
@@ -494,17 +635,27 @@ export const Dashboard = ({
 
   return (
     <div className="-m-6 px-6 py-2 space-y-2">
-      {/* Profile Section Container */}
-      <div className="bg-gray-100 rounded-2xl p-2">
-        <div className="flex items-center justify-end">
-          <div className="w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer">
-            <UserCircle className="h-6 w-6 text-gray-600" />
-          </div>
-        </div>
+      {/* Profile Section Container with Timer */}
+      <div className="bg-white rounded-2xl p-6">
+        <CompactTimer
+          workshopState={workshopState}
+          onStart={onStartWorkshop}
+          timeLeft={timeLeft}
+          capacityReached={capacityReached}
+          durationHours={durationHours}
+          setDurationHours={setDurationHours}
+          durationMinutes={durationMinutes}
+          setDurationMinutes={setDurationMinutes}
+          onPause={onPauseWorkshop}
+          onReset={onResetWorkshop}
+        />
       </div>
 
+      {/* Grey divider line */}
+      <div className="border-b border-gray-300"></div>
+
       {/* Main Dashboard Container with Gray Background */}
-      <div className="bg-gray-100 rounded-2xl p-6 space-y-2">
+      <div className="bg-white rounded-2xl p-6 space-y-2">
         {/* Page Header */}
         <div className="flex items-start justify-between mb-2">
           <div>
