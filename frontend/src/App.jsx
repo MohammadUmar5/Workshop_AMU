@@ -4,6 +4,7 @@ import { generateAndSendPass } from './utils/passGenerator';
 import { generateAndSendCertificate } from './utils/certificateGenerator';
 import { parseCSV } from './utils/csvParser';
 
+
 // Import constants
 import { WORKSHOP_CAPACITY } from "./constants/constants";
 import { colors } from "./theme/colors";
@@ -15,8 +16,6 @@ import {
 } from "./components/GeminiComponents";
 import {
   CertificateGenerator,
-  CertificateDesigner,
-  CertificateList,
 } from "./components/CertificateComponents";
 import {
   GeneratedCard,
@@ -34,6 +33,8 @@ import {
 } from "./components/DashboardComponents";
 import { Sidebar } from "./components/Sidebar";
 import MiddlePanel from "./components/MiddlePanel";
+import CertificateCustomizationPanel from "./components/CertificateCustomizationPanel";
+import PassCustomizationPanel from "./components/PassCustomizationPanel";
 
 // --- Main App Component ---
 export default function App() {
@@ -44,6 +45,11 @@ export default function App() {
   const [currentCard, setCurrentCard] = useState(null);
   const [personToCertify, setPersonToCertify] = useState(null); // [NEW] For certificate modal
   const [personLeaving, setPersonLeaving] = useState(null); // [NEW] For early leave modal
+
+  // --- [NEW] Customization States (selection-based, not modal) ---
+  const [selectedCertAction, setSelectedCertAction] = useState(null); // 'certificate' | 'pass' | 'send' | null
+  const [certTemplateConfig, setCertTemplateConfig] = useState(null);
+  const [passTemplateConfig, setPassTemplateConfig] = useState(null);
 
   // --- Workshop State ---
   const [workshopState, setWorkshopState] = useState("idle"); // 'idle', 'active', 'finished'
@@ -718,6 +724,8 @@ held on ${new Date().toLocaleDateString("en-IN", {
           onSelectParticipant={setSelectedParticipant}
           searchQuery={middlePanelSearchQuery}
           setSearchQuery={setMiddlePanelSearchQuery}
+          onSelectCertAction={setSelectedCertAction}
+          selectedCertAction={selectedCertAction}
         />
         
         {/* Main content area */}
@@ -828,51 +836,88 @@ held on ${new Date().toLocaleDateString("en-IN", {
           )}
 
           {/* --- [NEW] Certificates Tab Content --- */}
-          {currentView === "certificates" && workshopState === "finished" && (
-            <div id="certificates-panel">
-              {/* [MODIFIED] Certificate Designer with threshold */}
-              <CertificateDesigner
-                certBody={certBody}
-                setCertBody={setCertBody}
-                nameFont={nameFont}
-                setNameFont={setNameFont}
-                sigFont={sigFont}
-                setSigFont={setSigFont}
-                certBg={certBg}
-                setCertBg={setCertBg}
-                certBorder={certBorder}
-                setCertBorder={setCertBorder}
-                certTitleFont={certTitleFont}
-                setCertTitleFont={setCertTitleFont}
-                threshold={certificateThreshold}
-                setThreshold={setCertificateThreshold}
-                eligibleCount={eligibleForCertificate.length}
-                onSendCertificates={handleSendCertificates}
-                certificatesSending={certificatesSending}
-                eligibleParticipants={eligibleForCertificate}
-              />
+          {currentView === "certificates" && (
+            <div id="certificates-panel" className="h-full">
+              {/* Show Customization Panel when action is selected */}
+              {selectedCertAction === 'certificate' && (
+                <CertificateCustomizationPanel
+                  currentConfig={certTemplateConfig}
+                  onSave={(config, templatePath) => {
+                    setCertTemplateConfig(config);
+                    console.log('Certificate template saved:', templatePath);
+                    setSelectedCertAction(null); // Close panel after save
+                  }}
+                  onCancel={() => setSelectedCertAction(null)}
+                />
+              )}
 
-              {/* [MODIFIED] Reports moved here, added early leavers */}
-              <DownloadReports
-                admitted={admittedPeople}
-                absentees={absentPeople}
-                earlyLeavers={earlyLeavers}
-                onDownloadAdmitted={handleDownloadAdmitted}
-                onDownloadAbsentees={handleDownloadAbsentees}
-                onDownloadEarlyLeavers={handleDownloadEarlyLeavers}
-              />
+              {selectedCertAction === 'pass' && (
+                <PassCustomizationPanel
+                  currentConfig={passTemplateConfig}
+                  onSave={(config, templatePath) => {
+                    setPassTemplateConfig(config);
+                    console.log('Pass template saved:', templatePath);
+                    setSelectedCertAction(null); // Close panel after save
+                  }}
+                  onCancel={() => setSelectedCertAction(null)}
+                />
+              )}
 
-              {/* [MODIFIED] List now uses eligible people */}
-              <CertificateList
-                eligiblePeople={eligibleForCertificate}
-                onGenerateCertificate={handleGenerateCertificate}
-              />
-
-              {/* [NEW] Absentee list moved here */}
-              <AbsentList absentPeople={absentPeople} />
-
-              {/* [NEW] Early Leavers list also shown here for review */}
-              <EarlyLeaveList earlyLeavers={earlyLeavers} />
+              {/* Show Send Certificates Section when no action is selected */}
+              {!selectedCertAction && (
+                <div className="p-6">
+                  <div 
+                    className="flex items-center justify-between p-4 rounded-lg"
+                    style={{
+                      backgroundColor: colors.background.tertiary,
+                      border: `1px solid ${colors.border.default}`,
+                    }}
+                  >
+                    <div>
+                      <p 
+                        className="text-sm font-medium"
+                        style={{ color: colors.text.primary }}
+                      >
+                        {eligibleForCertificate.filter(p => !p.certificateSent).length > 0 ? (
+                          <>
+                            <span 
+                              className="text-2xl font-bold"
+                              style={{ color: colors.accent.blurple }}
+                            >
+                              {eligibleForCertificate.filter(p => !p.certificateSent).length}
+                            </span>
+                            <span style={{ color: colors.text.secondary }}>
+                              {' '}participant{eligibleForCertificate.filter(p => !p.certificateSent).length !== 1 ? 's' : ''} pending certificate delivery
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{ color: colors.status.success }}>
+                            ✓ All eligible participants have received certificates
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleSendCertificates}
+                      disabled={certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
+                      className="inline-flex items-center px-6 py-3 font-semibold rounded-lg shadow-md transition duration-200"
+                      style={{
+                        backgroundColor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
+                          ? colors.background.hover
+                          : colors.accent.blurple,
+                        color: '#ffffff',
+                        opacity: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
+                        cursor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
+                          ? 'not-allowed' 
+                          : 'pointer',
+                      }}
+                    >
+                      <Award className="h-5 w-5 mr-2" />
+                      {certificatesSending ? 'Sending...' : 'Send Certificates'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           </div>
@@ -966,6 +1011,8 @@ held on ${new Date().toLocaleDateString("en-IN", {
           <Settings className="w-5 h-5" style={{ stroke: "#6b7280" }} />
         </button>
       </div>
+
+
     </div>
   );
 }

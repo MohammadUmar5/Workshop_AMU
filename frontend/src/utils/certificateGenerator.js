@@ -2,9 +2,8 @@
 const USE_LEGACY = false;
 
 // Import legacy generator if needed
-import { generateAndSendCertificate as generateLegacy } from './certificateGeneratorLegacy.js';
 
-// New server-side generation using Sharp
+// Server-side generation using Sharp
 const generateCertificateServer = async (participant, certificateConfig) => {
   try {
     const { certBody, nameFont, sigFont, certTitleFont } = certificateConfig;
@@ -38,13 +37,7 @@ const generateCertificateServer = async (participant, certificateConfig) => {
   }
 };
 
-// Main export: Router function that chooses between server-side and legacy
+// Main export: Server-side certificate generation
 export const generateAndSendCertificate = async (participant, certificateConfig) => {
-  if (USE_LEGACY) {
-    // Use legacy client-side html-to-image generation
-    return await generateLegacy(participant, certificateConfig);
-  } else {
-    // Use new server-side Sharp generation
-    return await generateCertificateServer(participant, certificateConfig);
-  }
+  return await generateCertificateServer(participant, certificateConfig);
 };

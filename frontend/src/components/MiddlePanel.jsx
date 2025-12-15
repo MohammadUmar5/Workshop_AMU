@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Palette, FileText } from 'lucide-react';
 import { colors } from '../theme/colors';
 import StatusDot from './ui/StatusDot';
 
@@ -14,6 +15,8 @@ import StatusDot from './ui/StatusDot';
  * @param {function} onSelectParticipant - Callback when participant is clicked
  * @param {string} searchQuery - Current search query for filtering
  * @param {function} setSearchQuery - Update search query
+ * @param {function} onOpenCertCustom - Open certificate customization modal
+ * @param {function} onOpenPassCustom - Open pass customization modal
  */
 
 const MiddlePanel = ({
@@ -22,6 +25,8 @@ const MiddlePanel = ({
   onSelectParticipant,
   searchQuery = '',
   setSearchQuery,
+  onSelectCertAction,
+  selectedCertAction,
 }) => {
   // Filter registrants based on search query
   const filteredRegistrants = useMemo(() => {
@@ -176,11 +181,10 @@ const MiddlePanel = ({
     <div
       className="flex flex-col overflow-hidden"
       style={{
-        width: '280px',
+        width: '290px',
         height: 'calc(100% - 10px)',
         backgroundColor: colors.background.primary,
         borderRight: `1px solid ${colors.border.default}`,
-        marginLeft: '10px',
       }}
     >
       {/* Header */}
@@ -228,6 +232,25 @@ const MiddlePanel = ({
             onBlur={(e) => {
               e.target.style.borderColor = colors.border.default;
             }}
+          />
+        </div>
+      )}
+
+      {/* Customization List Items - Only show in certificates view */}
+      {currentView === 'certificates' && (
+        <div className="px-2 pt-2 pb-2 shrink-0">
+          <CustomizationListItem
+            icon={<Palette size={16} />}
+            label="Customize Certificate"
+            isSelected={selectedCertAction === 'certificate'}
+            onClick={() => onSelectCertAction('certificate')}
+          />
+          
+          <CustomizationListItem
+            icon={<FileText size={16} />}
+            label="Customize Pass"
+            isSelected={selectedCertAction === 'pass'}
+            onClick={() => onSelectCertAction('pass')}
           />
         </div>
       )}
@@ -380,6 +403,42 @@ const CertificateListItem = ({ participant, onClick }) => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Customization List Item Component (Discord-style)
+const CustomizationListItem = ({ icon, label, isSelected, onClick }) => {
+  return (
+    <div
+      onClick={onClick}
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150 flex items-center gap-2"
+      style={{
+        backgroundColor: isSelected ? colors.background.hover : 'transparent',
+        borderLeft: isSelected ? `3px solid ${colors.accent.blurple}` : '3px solid transparent',
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = colors.background.middlePanelHover;
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }
+      }}
+    >
+      <div style={{ color: colors.text.secondary }}>
+        {icon}
+      </div>
+      <span 
+        className="text-sm font-medium"
+        style={{ 
+          color: isSelected ? colors.text.primary : colors.text.secondary 
+        }}
+      >
+        {label}
+      </span>
     </div>
   );
 };

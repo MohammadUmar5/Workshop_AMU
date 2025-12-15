@@ -70,15 +70,13 @@ export const Sidebar = ({
           // label="AI Tools"
         />
 
-        {/* Certificates - only show when workshop finished */}
-        {workshopState === "finished" && (
-          <NavIcon
-            icon={<Award className="w-6 h-6" />}
-            isActive={currentView === "certificates"}
-            onClick={() => setCurrentView("certificates")}
-            // label="Certificates"
-          />
-        )}
+        {/* Certificates - always visible */}
+        <NavIcon
+          icon={<Award className="w-6 h-6" />}
+          isActive={currentView === "certificates"}
+          onClick={() => setCurrentView("certificates")}
+          // label="Certificates"
+        />
       </nav>
 
       {/* Profile Box at bottom */}
