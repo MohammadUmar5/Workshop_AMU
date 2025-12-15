@@ -114,7 +114,7 @@ const handleSendEmail = async () => {
     : 'N/A';
 
   return (
-    <div className="relative p-6 mb-6 animate-pulse-once">
+    <div className="hidden">
       <style>{`
         @keyframes pulse-once {
           0% { transform: scale(0.98); opacity: 0.7; }
@@ -139,7 +139,7 @@ const handleSendEmail = async () => {
         className="p-6 bg-white border-2 border-gray-300 rounded-lg shadow-lg"
       >
         <div className="flex items-center pb-4 border-b border-gray-200">
-          <CheckCircle className="h-10 w-10 text-green-600 mr-4 flex-shrink-0" />
+          <CheckCircle className="h-10 w-10 text-green-600 mr-4 shrink-0" />
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{person.name}</h2>
             <p className="text-lg font-medium text-gray-700">Has Been Admitted</p>
@@ -157,7 +157,7 @@ const handleSendEmail = async () => {
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-gray-800">
           <div className="flex items-center">
             <Building className="h-5 w-5 mr-3 text-gray-500" />
-            <strong className="break-words" title={person.department}>{person.department}</strong>
+            <strong className="wrap-break-word" title={person.department}>{person.department}</strong>
           </div>
           <div className="flex items-center">
             <BookOpen className="h-5 w-5 mr-3 text-gray-500" />
@@ -169,7 +169,7 @@ const handleSendEmail = async () => {
           </div>
           <div className="flex items-center">
             <Mail className="h-5 w-5 mr-3 text-gray-500" />
-            <span className="break-words" title={person.email}>{person.email}</span>
+            <span className="wrap-break-word" title={person.email}>{person.email}</span>
           </div>
           <div className="flex items-center md:col-span-2">
             <Clock className="h-5 w-5 mr-3 text-gray-500" />
@@ -246,18 +246,18 @@ const handleSendEmail = async () => {
 // SearchResults Component
 export const SearchResults = ({ results, onValidate, workshopActive, capacityReached }) => (
   <div>
-    <h3 className="text-sm font-semibold text-gray-600 mb-3">
+    <h3 className="text-sm font-semibold text-[#b9bbbe] mb-3">
       {results.length} matching registration{results.length !== 1 ? 's' : ''}
     </h3>
     <ul className="space-y-3">
       {results.map((person) => (
         <li 
           key={person.id} 
-          className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between"
+          className="p-4 bg-[#000000] border border-[#2a2a2a] rounded-lg hover:bg-[#1a1a1a] transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between"
         >
           <div className="mb-3 sm:mb-0">
-            <p className="font-bold text-lg text-gray-900">{person.name}</p>
-            <div className="mt-1 text-sm text-gray-600">
+            <p className="font-bold text-lg text-white">{person.name}</p>
+            <div className="mt-1 text-sm text-[#b9bbbe]">
               <p className="truncate" title={person.email}>{person.email}</p>
               <p>{person.phone}</p>
             </div>
@@ -265,10 +265,10 @@ export const SearchResults = ({ results, onValidate, workshopActive, capacityRea
           <button
             onClick={() => onValidate(person.id)}
             disabled={!workshopActive || capacityReached} 
-            className={`px-4 py-2 font-semibold rounded-lg shadow-md transition duration-200 flex items-center w-full sm:w-auto justify-center ${
+            className={`px-4 py-2 font-semibold rounded-lg transition duration-200 flex items-center w-full sm:w-auto justify-center ${
               (workshopActive && !capacityReached)
-                ? 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500' 
-                : 'bg-gray-400 text-gray-100 cursor-not-allowed'
+                ? 'bg-[#3ba55d] text-white hover:bg-[#2d7d46] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3ba55d]' 
+                : 'bg-[#4e5058] text-[#72767d] cursor-not-allowed opacity-50'
             }`}
           >
             <UserCheck className="h-5 w-5 mr-2" />
@@ -283,18 +283,18 @@ export const SearchResults = ({ results, onValidate, workshopActive, capacityRea
 // EarlyLeaveSearchResults Component
 export const EarlyLeaveSearchResults = ({ results, onMarkLeave, workshopActive }) => (
   <div>
-    <h3 className="text-sm font-semibold text-gray-600 mb-3">
+    <h3 className="text-sm font-semibold text-[#b9bbbe] mb-3">
       {results.length} admitted participant{results.length !== 1 ? 's' : ''}
     </h3>
     <ul className="space-y-3">
       {results.map((person) => (
         <li 
           key={person.id} 
-          className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between"
+          className="p-4 bg-[#000000] border border-[#2a2a2a] rounded-lg hover:bg-[#1a1a1a] transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between"
         >
           <div className="mb-3 sm:mb-0">
-            <p className="font-bold text-lg text-gray-900">{person.name}</p>
-            <div className="mt-1 text-sm text-gray-600">
+            <p className="font-bold text-lg text-white">{person.name}</p>
+            <div className="mt-1 text-sm text-[#b9bbbe]">
               <p className="truncate" title={person.email}>{person.email}</p>
               <p>{person.phone}</p>
             </div>
@@ -302,10 +302,10 @@ export const EarlyLeaveSearchResults = ({ results, onMarkLeave, workshopActive }
           <button
             onClick={() => onMarkLeave(person)}
             disabled={!workshopActive} 
-            className={`px-4 py-2 font-semibold rounded-lg shadow-md transition duration-200 flex items-center w-full sm:w-auto justify-center ${
+            className={`px-4 py-2 font-semibold rounded-lg transition duration-200 flex items-center w-full sm:w-auto justify-center ${
               workshopActive
-                ? 'bg-yellow-600 text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500' 
-                : 'bg-gray-400 text-gray-100 cursor-not-allowed'
+                ? 'bg-[#faa61a] text-white hover:bg-[#e09013] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#faa61a]' 
+                : 'bg-[#4e5058] text-[#72767d] cursor-not-allowed opacity-50'
             }`}
           >
             <LogOut className="h-5 w-5 mr-2" />
@@ -336,8 +336,8 @@ export const StatusMessage = ({ status, query, type = 'checkin' }) => {
 
   if (status === 'idle') {
     return (
-      <div className="flex items-center p-3 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm">
-        <UserSearch className="h-5 w-5 mr-2 flex-shrink-0" />
+      <div className="flex items-center p-3 bg-[#000000] border border-[#2a2a2a] rounded-lg text-[#b9bbbe] text-sm">
+        <UserSearch className="h-5 w-5 mr-2 shrink-0" />
         <p>{msg.idle}</p>
       </div>
     );
@@ -345,9 +345,9 @@ export const StatusMessage = ({ status, query, type = 'checkin' }) => {
 
   if (status === 'notFound') {
     return (
-      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+      <div className="p-3 bg-[#ed4245]/10 border border-[#ed4245]/30 rounded-lg text-[#ed4245]">
         <div className="flex items-center mb-1">
-          <UserX className="h-5 w-5 mr-2 flex-shrink-0" />
+          <UserX className="h-5 w-5 mr-2 shrink-0" />
           <h3 className="font-bold text-sm">{msg.notFound}</h3>
         </div>
         <p className="text-xs ml-7">{msg.notFoundQuery}</p>
@@ -396,50 +396,50 @@ export const OnSpotRegistration = ({ onRegister, workshopActive, capacityReached
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="spot-name" className="block text-sm font-medium text-gray-700">Full Name *</label>
+            <label htmlFor="spot-name" className="block text-sm font-medium text-[#b9bbbe]">Full Name *</label>
             <input 
               type="text" id="spot-name" value={name} onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#5865f2] focus:border-[#5865f2]"
               disabled={isDisabled}
             />
           </div>
           <div>
-            <label htmlFor="spot-email" className="block text-sm font-medium text-gray-700">Email *</label>
+            <label htmlFor="spot-email" className="block text-sm font-medium text-[#b9bbbe]">Email *</label>
             <input 
               type="email" id="spot-email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#5865f2] focus:border-[#5865f2]"
               disabled={isDisabled}
             />
           </div>
           <div>
-            <label htmlFor="spot-phone" className="block text-sm font-medium text-gray-700">Phone *</label>
+            <label htmlFor="spot-phone" className="block text-sm font-medium text-[#b9bbbe]">Phone *</label>
             <input 
               type="tel" id="spot-phone" value={phone} onChange={(e) => setPhone(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#5865f2] focus:border-[#5865f2]"
               disabled={isDisabled}
             />
           </div>
           <div>
-            <label htmlFor="spot-year" className="block text-sm font-medium text-gray-700">Year of Study</label>
+            <label htmlFor="spot-year" className="block text-sm font-medium text-[#b9bbbe]">Year of Study</label>
             <input 
               type="text" id="spot-year" value={year} onChange={(e) => setYear(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#5865f2] focus:border-[#5865f2]"
               disabled={isDisabled}
             />
           </div>
           <div className="md:col-span-2">
-            <label htmlFor="spot-dept" className="block text-sm font-medium text-gray-700">Department</label>
+            <label htmlFor="spot-dept" className="block text-sm font-medium text-[#b9bbbe]">Department</label>
             <input 
               type="text" id="spot-dept" value={department} onChange={(e) => setDepartment(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#5865f2] focus:border-[#5865f2]"
               disabled={isDisabled}
             />
           </div>
           <div>
-            <label htmlFor="spot-diet" className="block text-sm font-medium text-gray-700">Dietary Preference</label>
+            <label htmlFor="spot-diet" className="block text-sm font-medium text-[#b9bbbe]">Dietary Preference</label>
             <select 
               id="spot-diet" value={diet} onChange={(e) => setDiet(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white focus:ring-2 focus:ring-[#5865f2] focus:border-[#5865f2]"
               disabled={isDisabled}
             >
               <option>Vegetarian</option>
@@ -450,16 +450,16 @@ export const OnSpotRegistration = ({ onRegister, workshopActive, capacityReached
         </div>
         
         {formError && (
-          <p className="text-sm text-red-600">{formError}</p>
+          <p className="text-sm text-[#ed4245]">{formError}</p>
         )}
         
         <button
           type="submit"
           disabled={isDisabled}
-          className={`w-full inline-flex items-center justify-center px-6 py-3 font-semibold rounded-lg shadow-md transition duration-200 text-lg ${
+          className={`w-full inline-flex items-center justify-center px-6 py-3 font-semibold rounded-lg transition duration-200 text-lg ${
             isDisabled 
-              ? 'bg-gray-400 text-gray-100 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              ? 'bg-[#4e5058] text-[#72767d] cursor-not-allowed opacity-50'
+              : 'bg-[#5865f2] text-white hover:bg-[#4752c4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5865f2]'
           }`}
         >
           <UserPlus className="h-6 w-6 mr-2" />
@@ -482,15 +482,15 @@ export const EarlyLeaveModal = ({ person, onClose, onSubmit }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-2xl p-6 md:p-8 max-w-lg w-full">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Mark Early Leave</h2>
-        <p className="text-lg mb-4">
-          You are marking <strong className="text-indigo-600">{person.name}</strong> as leaving early.
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+      <div className="bg-black border border-[#2a2a2a] rounded-lg shadow-2xl p-6 md:p-8 max-w-lg w-full">
+        <h2 className="text-2xl font-bold text-white mb-4">Mark Early Leave</h2>
+        <p className="text-lg mb-4 text-[#dcddde]">
+          You are marking <strong className="text-[#5865f2]">{person.name}</strong> as leaving early.
         </p>
         
         <div>
-          <label htmlFor="leave-reason" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="leave-reason" className="block text-sm font-medium text-[#b9bbbe]">
             Reason for leaving (Optional)
           </label>
           <textarea
@@ -498,7 +498,7 @@ export const EarlyLeaveModal = ({ person, onClose, onSubmit }) => {
             rows="3"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+            className="mt-1 block w-full p-2 bg-[#000000] border border-[#2a2a2a] rounded-md text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#faa61a] focus:border-[#faa61a]"
             placeholder="e.g., Family emergency, not feeling well..."
           />
         </div>
@@ -506,14 +506,14 @@ export const EarlyLeaveModal = ({ person, onClose, onSubmit }) => {
         <div className="mt-6 flex flex-col sm:flex-row-reverse gap-4">
           <button 
             onClick={handleSubmit}
-            className="inline-flex items-center justify-center px-6 py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition duration-200"
+            className="inline-flex items-center justify-center px-6 py-3 bg-[#faa61a] text-white font-semibold rounded-lg hover:bg-[#e09013] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#faa61a] transition duration-200"
           >
             <Save className="h-5 w-5 mr-2" />
             Confirm Early Leave
           </button>
           <button 
             onClick={onClose} 
-            className="inline-flex items-center justify-center px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
+            className="inline-flex items-center justify-center px-6 py-3 bg-[#4e5058] text-white font-semibold rounded-lg hover:bg-[#5c5f66] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4e5058] transition duration-200"
           >
             Cancel
           </button>

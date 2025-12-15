@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Search, UserPlus, LogOut, Sparkles, Award } from "lucide-react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { Search, UserPlus, LogOut, Sparkles, Award, Settings } from "lucide-react";
 import { generateAndSendPass } from './utils/passGenerator';
 import { generateAndSendCertificate } from './utils/certificateGenerator';
+import { parseCSV } from './utils/csvParser';
 
 // Import constants
 import { WORKSHOP_CAPACITY } from "./constants/constants";
+import { colors } from "./theme/colors";
 
 // Import components
 import {
@@ -27,16 +29,15 @@ import {
   AdmittedList,
   AbsentList,
   EarlyLeaveList,
-  DataLoader,
   DownloadReports,
   Dashboard,
 } from "./components/DashboardComponents";
 import { Sidebar } from "./components/Sidebar";
+import MiddlePanel from "./components/MiddlePanel";
 
 // --- Main App Component ---
 export default function App() {
-  const [registrants, setRegistrants] = useState([]); // [MODIFIED] Start with empty data
-  const [dataLoaded, setDataLoaded] = useState(false); // [NEW] State to control UI
+  const [registrants, setRegistrants] = useState([]); // Start with empty data
 
   const [searchQuery, setSearchQuery] = useState("");
   const [earlyLeaveSearchQuery, setEarlyLeaveSearchQuery] = useState(""); // [NEW]
@@ -58,7 +59,7 @@ export default function App() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [currentView, setCurrentView] = useState("checkin"); // 'checkin', 'ai', 'certificates'
+  const [currentView, setCurrentView] = useState("dashboard"); // Start from dashboard
   const [activeSubView, setActiveSubView] = useState("checkin");
 
   // --- [NEW] Certificate Design State ---
@@ -85,6 +86,10 @@ held on ${new Date().toLocaleDateString("en-IN", {
   const [passesSending, setPassesSending] = useState(false);
   const [passesSent, setPassesSent] = useState(0);
   const [passesFailed, setPassesFailed] = useState(0);
+
+  // --- Permission States for Manual Trigger ---
+  const [sendCertificatesPermission, setSendCertificatesPermission] = useState(false);
+  const sendingInProgressRef = useRef(false);
 
   //load html-to-image script
   useEffect(() => {
@@ -247,23 +252,40 @@ held on ${new Date().toLocaleDateString("en-IN", {
     workshopDurationInSeconds,
   ]);
 
-  // --- Auto-send Certificates When Workshop Finishes ---
+  // --- Auto-send Certificates When Workshop Finishes (with Permission) ---
   useEffect(() => {
     const sendCertificatesToEligible = async () => {
+      // Check all conditions before proceeding
       if (workshopState !== "finished" || eligibleForCertificate.length === 0) {
         return;
       }
 
-      // Check if we've already started sending (prevent duplicate sends)
-      if (certificatesSending) {
+      // Must have explicit permission to send
+      if (!sendCertificatesPermission) {
         return;
       }
 
+      // Prevent concurrent executions using ref
+      if (sendingInProgressRef.current) {
+        return;
+      }
+
+      // Filter out participants who already received certificates
+      const pendingParticipants = eligibleForCertificate.filter(p => !p.certificateSent);
+      
+      if (pendingParticipants.length === 0) {
+        console.log('All eligible participants already received certificates');
+        setSendCertificatesPermission(false);
+        return;
+      }
+
+      // Set locks
+      sendingInProgressRef.current = true;
       setCertificatesSending(true);
       setCertificatesSent(0);
       setCertificatesFailed(0);
 
-      console.log(`Starting to send certificates to ${eligibleForCertificate.length} eligible participants...`);
+      console.log(`Starting to send certificates to ${pendingParticipants.length} pending participants...`);
 
       const certificateConfig = {
         certBody,
@@ -277,12 +299,17 @@ held on ${new Date().toLocaleDateString("en-IN", {
       let sent = 0;
       let failed = 0;
 
-      for (const participant of eligibleForCertificate) {
+      for (const participant of pendingParticipants) {
         try {
           const success = await generateAndSendCertificate(participant, certificateConfig);
           if (success) {
             sent++;
             setCertificatesSent(sent);
+            
+            // Mark participant as having received certificate
+            setRegistrants(prev => prev.map(p => 
+              p.id === participant.id ? { ...p, certificateSent: true } : p
+            ));
           } else {
             failed++;
             setCertificatesFailed(failed);
@@ -296,13 +323,16 @@ held on ${new Date().toLocaleDateString("en-IN", {
         }
       }
 
+      // Release locks and reset permission
       setCertificatesSending(false);
+      sendingInProgressRef.current = false;
+      setSendCertificatesPermission(false);
       console.log(`Certificate sending complete: ${sent} sent, ${failed} failed`);
     };
 
     sendCertificatesToEligible();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workshopState, eligibleForCertificate]);
+  }, [workshopState, eligibleForCertificate, sendCertificatesPermission]);
 
   // --- [MODIFIED] Handle Start Workshop ---
   const handleStartWorkshop = () => {
@@ -377,17 +407,23 @@ held on ${new Date().toLocaleDateString("en-IN", {
     setCurrentCard(validatedPerson);
     setSearchQuery("");
 
-    // ✅ NEW: Auto-send pass via email
-    setTimeout(async () => {
-      setPassesSending(true);
-      const success = await generateAndSendPass(validatedPerson);
-      if (success) {
-        setPassesSent(prev => prev + 1);
-      } else {
-        setPassesFailed(prev => prev + 1);
-      }
-      setPassesSending(false);
-    }, 500); // Small delay for render
+    // ✅ Auto-send pass via email (only if not already sent)
+    if (!validatedPerson.passSent) {
+      setTimeout(async () => {
+        setPassesSending(true);
+        const success = await generateAndSendPass(validatedPerson);
+        if (success) {
+          setPassesSent(prev => prev + 1);
+          // Mark pass as sent
+          setRegistrants(prev => prev.map(p => 
+            p.id === personId ? { ...p, passSent: true } : p
+          ));
+        } else {
+          setPassesFailed(prev => prev + 1);
+        }
+        setPassesSending(false);
+      }, 500); // Small delay for render
+    }
   };
 
   // --- [NEW] Handle On-Spot Registration ---
@@ -399,6 +435,32 @@ held on ${new Date().toLocaleDateString("en-IN", {
       return showErrorMessage("Workshop is at full capacity.");
     }
 
+    // Check for duplicate by email
+    const existingByEmail = registrants.find(
+      p => p.email.toLowerCase() === personData.email.toLowerCase()
+    );
+    if (existingByEmail) {
+      if (existingByEmail.status === "admitted") {
+        return showErrorMessage("This participant is already admitted.");
+      }
+      if (existingByEmail.status === "left_early") {
+        return showErrorMessage("This participant has already left early.");
+      }
+    }
+
+    // Check for duplicate by phone
+    const existingByPhone = registrants.find(
+      p => p.phone === personData.phone
+    );
+    if (existingByPhone && existingByPhone.status !== "pending") {
+      if (existingByPhone.status === "admitted") {
+        return showErrorMessage("A participant with this phone number is already admitted.");
+      }
+      if (existingByPhone.status === "left_early") {
+        return showErrorMessage("A participant with this phone number has already left early.");
+      }
+    }
+
     const admissionTime = new Date();
     const newPerson = {
       ...personData,
@@ -408,17 +470,23 @@ held on ${new Date().toLocaleDateString("en-IN", {
       leftAt: null,
       leaveReason: "",
       onSpot: true,
+      certificateSent: false,
+      passSent: false,
     };
 
     setRegistrants((prev) => [...prev, newPerson]);
     setCurrentCard(newPerson);
 
-    // ✅ NEW: Auto-send pass via email
+    // ✅ Auto-send pass via email
     setTimeout(async () => {
       setPassesSending(true);
       const success = await generateAndSendPass(newPerson);
       if (success) {
         setPassesSent(prev => prev + 1);
+        // Mark pass as sent
+        setRegistrants(prev => prev.map(p => 
+          p.id === newPerson.id ? { ...p, passSent: true } : p
+        ));
       } else {
         setPassesFailed(prev => prev + 1);
       }
@@ -432,6 +500,20 @@ held on ${new Date().toLocaleDateString("en-IN", {
   };
 
   const handleSubmitLeaveEarly = (person, reason) => {
+    // Verify the person is currently admitted
+    const currentPerson = registrants.find(p => p.id === person.id);
+    if (!currentPerson) {
+      showErrorMessage("Participant not found.");
+      setPersonLeaving(null);
+      return;
+    }
+
+    if (currentPerson.status !== "admitted") {
+      showErrorMessage("Only admitted participants can be marked as left early.");
+      setPersonLeaving(null);
+      return;
+    }
+
     const leaveTime = new Date();
 
     setRegistrants((prevRegistrants) =>
@@ -543,26 +625,75 @@ held on ${new Date().toLocaleDateString("en-IN", {
     generateCSV(data, headers, "early_leavers.csv");
   };
 
-  // --- [NEW] Handler for when data is loaded ---
-  const handleDataLoaded = (data) => {
-    setRegistrants(data);
-    setDataLoaded(true);
-  };
-
-  // --- [NEW] Handler for certificate modal ---
+  // --- Handler for certificate modal ---
   const handleGenerateCertificate = (person) => {
     setPersonToCertify(person);
   };
 
-  // --- [NEW] Render Data Loader if data isn't loaded ---
-  if (!dataLoaded) {
-    return <DataLoader onDataLoaded={handleDataLoaded} />;
-  }
+  // --- Handler for Send Certificates button ---
+  const handleSendCertificates = () => {
+    const pendingCount = eligibleForCertificate.filter(p => !p.certificateSent).length;
+    
+    if (pendingCount === 0) {
+      alert('All eligible participants have already received certificates.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Send certificates to ${pendingCount} eligible participant${pendingCount > 1 ? 's' : ''}?\n\n` +
+      `This will email certificates to all participants who:\n` +
+      `- Stayed for the required duration\n` +
+      `- Have not already received a certificate\n\n` +
+      `This action cannot be undone.`
+    );
+
+    if (confirmed) {
+      setSendCertificatesPermission(true);
+    }
+  };
+
+  // --- Handler for Import CSV button ---
+  const handleImportCSVClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        try {
+          const text = await file.text();
+          const data = parseCSV(text);
+          // Initialize certificateSent and passSent flags for each participant
+          const dataWithFlags = data.map(person => ({
+            ...person,
+            certificateSent: false,
+            passSent: false
+          }));
+          setRegistrants(dataWithFlags);
+        } catch (error) {
+          console.error('Error loading CSV:', error);
+          alert('Failed to load CSV file. Please check the file format.');
+        }
+      }
+    };
+    input.click();
+  };
+
+  // --- State for middle panel search ---
+  const [middlePanelSearchQuery, setMiddlePanelSearchQuery] = useState("");
+  const [, setSelectedParticipant] = useState(null);
 
   // --- [MODIFIED] Main App Render (only happens *after* data is loaded) ---
   return (
-    <div className="min-h-screen bg-white flex font-sans gap-2 pl-0 pr-2 py-0">
-      {/* Sidebar Navigation */}
+    <div 
+      className="h-screen flex font-sans overflow-hidden"
+      style={{ 
+        backgroundColor: colors.background.primary,
+        gap: '12px',
+        padding: '12px'
+      }}
+    >
+      {/* Left Sidebar - Icon Navigation */}
       <Sidebar 
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -571,11 +702,30 @@ held on ${new Date().toLocaleDateString("en-IN", {
         setActiveSubView={setActiveSubView}
       />
       
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header section moved - will be redesigned in step 3 */}
+      {/* Combined Middle + Main Panel Container */}
+      <div 
+        className="flex-1 flex overflow-hidden rounded-lg mt-7"
+        style={{ 
+          backgroundColor: colors.background.primary,
+          border: `1px solid ${colors.border.default}`,
+          height: 'calc(100vh - 2.25rem - 24px + 72px)'
+        }}
+      >
+        {/* Middle Panel - Context List */}
+        <MiddlePanel
+          currentView={currentView}
+          registrants={registrants}
+          onSelectParticipant={setSelectedParticipant}
+          searchQuery={middlePanelSearchQuery}
+          setSearchQuery={setMiddlePanelSearchQuery}
+        />
         
-        {/* Content wrapper */}
+        {/* Main content area */}
+        <div 
+          className="flex-1 flex flex-col overflow-hidden"
+          style={{ backgroundColor: colors.background.secondary }}
+        >
+          {/* Content wrapper */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
           <GeneratedCard
@@ -624,10 +774,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
               onDownloadAdmitted={handleDownloadAdmitted}
               onDownloadAbsentees={handleDownloadAbsentees}
               onDownloadEarlyLeavers={handleDownloadEarlyLeavers}
-              onImportCSV={() => {
-                setDataLoaded(false);
-                setRegistrants([]);
-              }}
+              onImportCSV={handleImportCSVClick}
               onStartWorkshop={handleStartWorkshop}
               onPauseWorkshop={handlePauseWorkshop}
               onResetWorkshop={handleResetWorkshop}
@@ -647,31 +794,21 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
           {/* Unified Check-in View */}
           {currentView === "checkin" && (
-            <>
-              <UnifiedCheckinView
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                earlyLeaveSearchQuery={earlyLeaveSearchQuery}
-                setEarlyLeaveSearchQuery={setEarlyLeaveSearchQuery}
-                searchLogic={searchLogic}
-                earlyLeaveSearchLogic={earlyLeaveSearchLogic}
-                onValidate={handleValidate}
-                onOnSpotRegister={handleOnSpotRegister}
-                onMarkLeaveEarly={handleMarkLeaveEarly}
-                workshopState={workshopState}
-                capacityReached={capacityReached}
-                activeSubView={activeSubView}
-                setActiveSubView={setActiveSubView}
-              />
-
-              {/* Show Admitted List Below */}
-              <div className="mt-6">
-                <AdmittedList
-                  admittedPeople={admittedPeople}
-                  totalCapacity={WORKSHOP_CAPACITY}
-                />
-              </div>
-            </>
+            <UnifiedCheckinView
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              earlyLeaveSearchQuery={earlyLeaveSearchQuery}
+              setEarlyLeaveSearchQuery={setEarlyLeaveSearchQuery}
+              searchLogic={searchLogic}
+              earlyLeaveSearchLogic={earlyLeaveSearchLogic}
+              onValidate={handleValidate}
+              onOnSpotRegister={handleOnSpotRegister}
+              onMarkLeaveEarly={handleMarkLeaveEarly}
+              workshopState={workshopState}
+              capacityReached={capacityReached}
+              activeSubView={activeSubView}
+              setActiveSubView={setActiveSubView}
+            />
           )}
 
           {/* --- [NEW] AI Tools Tab Content --- */}
@@ -710,6 +847,9 @@ held on ${new Date().toLocaleDateString("en-IN", {
                 threshold={certificateThreshold}
                 setThreshold={setCertificateThreshold}
                 eligibleCount={eligibleForCertificate.length}
+                onSendCertificates={handleSendCertificates}
+                certificatesSending={certificatesSending}
+                eligibleParticipants={eligibleForCertificate}
               />
 
               {/* [MODIFIED] Reports moved here, added early leavers */}
@@ -737,6 +877,94 @@ held on ${new Date().toLocaleDateString("en-IN", {
           )}
           </div>
         </div>
+        </div>
+      </div>
+
+      {/* Bottom Overlay Bar - User Profile & Actions */}
+      <div 
+        className="fixed flex items-center px-4 py-3 gap-3 rounded-lg"
+        style={{
+          left: '8px',
+          bottom: '8px',
+          right: 'auto',
+          width: 'calc(50px + 280px + 15px)',
+          backgroundColor: colors.background.tertiary,
+          border: `1px solid ${colors.border.default}`,
+          zIndex: 1000,
+          height: '60px',
+        }}
+      >
+        {/* User Profile Section */}
+        <div className="flex items-center gap-3 flex-1">
+          {/* Profile Avatar */}
+          <div 
+            className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
+            style={{
+              backgroundColor: colors.background.primary,
+              border: `2px solid ${colors.border.default}`,
+            }}
+          >
+            <svg viewBox="0 0 768 768" className="w-7 h-7">
+              <path
+                fill="#1a1a1a"
+                d="M384 149.333c-129.387 0-234.667 105.28-234.667 234.667s105.28 234.667 234.667 234.667 234.667-105.28 234.667-234.667-105.28-234.667-234.667-234.667zm0 42.667c106.027 0 192 85.973 192 192s-85.973 192-192 192-192-85.973-192-192 85.973-192 192-192z"
+              />
+              <circle fill="#1a1a1a" cx="384" cy="384" r="138.667" />
+              <ellipse cx="426.667" cy="352" rx="32" ry="42.667" fill="white" />
+              <path
+                fill="#1a1a1a"
+                d="M192 320c0-17.673 14.327-32 32-32h32c17.673 0 32 14.327 32 32v64c0 17.673-14.327 32-32 32h-32c-17.673 0-32-14.327-32-32v-64z"
+              />
+              <path
+                fill="#1a1a1a"
+                d="M512 320c0-17.673 14.327-32 32-32h32c17.673 0 32 14.327 32 32v64c0 17.673-14.327 32-32 32h-32c-17.673 0-32-14.327-32-32v-64z"
+              />
+              <circle fill="#1a1a1a" cx="563.2" cy="166.4" r="21.333" />
+              <path
+                fill="#1a1a1a"
+                stroke="#1a1a1a"
+                strokeWidth="8"
+                d="M533.333 192l42.667-85.333"
+              />
+              <path fill="#1a1a1a" d="M192 512h-42.667v85.333h85.333v-42.667z" />
+              <path fill="#1a1a1a" d="M576 512h42.667v85.333h-85.333v-42.667z" />
+              <path fill="#1a1a1a" d="M234.667 597.333h-21.333v21.333h21.333z" />
+              <path fill="#1a1a1a" d="M554.667 597.333h21.333v21.333h-21.333z" />
+            </svg>
+          </div>
+
+          {/* User Info */}
+          <div className="flex flex-col">
+            <div 
+              className="text-sm font-semibold"
+              style={{ color: colors.text.primary }}
+            >
+              Admin
+            </div>
+            <div 
+              className="text-xs flex items-center gap-1"
+              style={{ color: colors.text.tertiary }}
+            >
+              <span 
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: colors.status.online }}
+              />
+              Online
+            </div>
+          </div>
+        </div>
+
+        {/* Settings Button */}
+        <button
+          onClick={() => setCurrentView("settings")}
+          className="w-9 h-9 rounded flex items-center justify-center transition-colors"
+          style={{
+            color: colors.background.quaternary,
+          }}
+          title="Settings"
+        >
+          <Settings className="w-5 h-5" style={{ stroke: "#6b7280" }} />
+        </button>
       </div>
     </div>
   );

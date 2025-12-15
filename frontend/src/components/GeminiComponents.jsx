@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Copy } from 'lucide-react';
 import { WORKSHOP_CAPACITY } from '../constants/constants';
 import { callGeminiAPI } from '../utils/geminiService';
+import { colors } from '../theme/colors';
 
 // --- [NEW] Gemini Icebreaker Component ---
 export const GeminiIcebreaker = ({ person }) => {

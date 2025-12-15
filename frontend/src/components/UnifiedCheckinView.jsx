@@ -55,27 +55,21 @@ export const UnifiedCheckinView = ({
   };
 
   return (
-    <div className="-mx-6">
+    <div className="-mx-6 -mt-6 bg-black min-h-screen">
       {/* Sticky Header Section */}
-      <div className="sticky top-0 z-10 bg-white">
-        {/* Top spacing */}
-        <div className="h-4"></div>
-
-        {/* Grey line above header */}
-        <div className="border-t border-gray-200"></div>
-
+      <div className="sticky top-0 z-10 bg-black">
         {/* Header with Active Tab Name */}
         <div className="px-6 py-4">
-          <h1 className="text-3xl font-semibold text-gray-900">
+          <h1 className="text-3xl font-semibold text-white">
             {getActiveTabName()}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-[#b9bbbe] mt-1">
             Manage workshop participants
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="px-6 flex items-center gap-4 border-b border-gray-200">
+        <div className="px-6 flex items-center gap-4 border-b border-[#2a2a2a]">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -85,14 +79,14 @@ export const UnifiedCheckinView = ({
                 onClick={() => setActiveSubView(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors relative ${
                   isActive
-                    ? "text-indigo-600"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "text-white"
+                    : "text-[#b9bbbe] hover:text-[#dcddde]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{tab.label}</span>
                 {isActive && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5865f2]"></div>
                 )}
               </button>
             );
@@ -101,18 +95,18 @@ export const UnifiedCheckinView = ({
       </div>
 
       {/* Content Area Based on Active Tab */}
-      <div className="px-6 py-6 flex justify-center">
-        <div className="w-full max-w-3xl">
+      <div className="bg-black">
+        <div className="w-full">
           {/* Check-in Tab Content */}
           {activeTab === "checkin" && (
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="bg-black px-6 py-6 pb-screen">
+              <h3 className="text-lg font-semibold text-white mb-4">
                 Admit Pre-Registered Participant
               </h3>
               <div>
                 <label
                   htmlFor="admit-search"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-medium text-[#b9bbbe] mb-2"
                 >
                   Search Pre-Registered
                 </label>
@@ -123,7 +117,7 @@ export const UnifiedCheckinView = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Name, email, or phone..."
                   disabled={!workshopActive}
-                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full p-3 bg-[#000000] border border-[#2a2a2a] rounded-lg text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#3ba55d] focus:border-[#3ba55d] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -148,8 +142,8 @@ export const UnifiedCheckinView = ({
 
           {/* On-Spot Tab Content */}
           {activeTab === "onspot" && (
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="bg-black shadow-md px-6 py-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
                 Register Walk-in Participant
               </h3>
               <OnSpotRegistration
@@ -162,14 +156,14 @@ export const UnifiedCheckinView = ({
 
           {/* Early Leave Tab Content */}
           {activeTab === "earlyleave" && (
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="bg-black shadow-md px-6 py-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
                 Mark Participant as Left Early
               </h3>
               <div>
                 <label
                   htmlFor="leave-search"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-medium text-[#b9bbbe] mb-2"
                 >
                   Search Admitted Participant
                 </label>
@@ -180,7 +174,7 @@ export const UnifiedCheckinView = ({
                   onChange={(e) => setEarlyLeaveSearchQuery(e.target.value)}
                   placeholder="Name, email, or phone..."
                   disabled={!workshopActive}
-                  className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full p-3 bg-[#000000] border border-[#2a2a2a] rounded-lg text-white placeholder-[#72767d] focus:ring-2 focus:ring-[#faa61a] focus:border-[#faa61a] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 

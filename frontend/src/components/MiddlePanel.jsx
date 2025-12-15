@@ -1,0 +1,387 @@
+import React, { useMemo } from 'react';
+import { colors } from '../theme/colors';
+import StatusDot from './ui/StatusDot';
+
+/**
+ * MiddlePanel Component
+ * 
+ * Context-aware middle panel that displays different content based on current view
+ * Mimics Discord's channel/DM list panel between server sidebar and chat area
+ * 
+ * Props:
+ * @param {string} currentView - Current active view (dashboard, checkin, certificates, ai)
+ * @param {array} registrants - All participants
+ * @param {function} onSelectParticipant - Callback when participant is clicked
+ * @param {string} searchQuery - Current search query for filtering
+ * @param {function} setSearchQuery - Update search query
+ */
+
+const MiddlePanel = ({
+  currentView,
+  registrants = [],
+  onSelectParticipant,
+  searchQuery = '',
+  setSearchQuery,
+}) => {
+  // Filter registrants based on search query
+  const filteredRegistrants = useMemo(() => {
+    if (!searchQuery.trim()) return registrants;
+    const query = searchQuery.toLowerCase();
+    return registrants.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(query) ||
+        p.email?.toLowerCase().includes(query) ||
+        p.phone?.toLowerCase().includes(query)
+    );
+  }, [registrants, searchQuery]);
+
+  // Get content based on current view
+  const getPanelContent = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return renderParticipantList();
+      case 'checkin':
+        return renderRecentCheckins();
+      case 'certificates':
+        return renderEligibleList();
+      case 'ai':
+        return renderGenerationHistory();
+      default:
+        return renderParticipantList();
+    }
+  };
+
+  // Render participant list (for Dashboard)
+  const renderParticipantList = () => {
+    const sortedByStatus = [...filteredRegistrants].sort((a, b) => {
+      const statusOrder = { admitted: 0, left_early: 1, pending: 2, absent: 3 };
+      return statusOrder[a.status] - statusOrder[b.status];
+    });
+
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-2 py-2">
+          {sortedByStatus.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <p style={{ color: colors.text.muted }} className="text-sm">
+                {searchQuery ? 'No participants found' : 'No participants yet'}
+              </p>
+            </div>
+          ) : (
+            sortedByStatus.map((participant) => (
+              <ParticipantListItem
+                key={participant.id}
+                participant={participant}
+                onClick={() => onSelectParticipant?.(participant)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render recent check-ins (for Check-in view)
+  const renderRecentCheckins = () => {
+    const recentAdmitted = [...registrants]
+      .filter((p) => p.status === 'admitted')
+      .sort((a, b) => new Date(b.admittedAt) - new Date(a.admittedAt))
+      .slice(0, 50);
+
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-2 py-2">
+          {recentAdmitted.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <p style={{ color: colors.text.muted }} className="text-sm">
+                No check-ins yet
+              </p>
+            </div>
+          ) : (
+            recentAdmitted.map((participant) => (
+              <CheckinListItem
+                key={participant.id}
+                participant={participant}
+                onClick={() => onSelectParticipant?.(participant)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render eligible participants (for Certificates view)
+  const renderEligibleList = () => {
+    const eligibleParticipants = filteredRegistrants.filter(
+      (p) => p.status === 'admitted' || p.status === 'left_early'
+    );
+
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-2 py-2">
+          {eligibleParticipants.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <p style={{ color: colors.text.muted }} className="text-sm">
+                No eligible participants
+              </p>
+            </div>
+          ) : (
+            eligibleParticipants.map((participant) => (
+              <CertificateListItem
+                key={participant.id}
+                participant={participant}
+                onClick={() => onSelectParticipant?.(participant)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render generation history placeholder (for AI view)
+  const renderGenerationHistory = () => {
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <div className="text-center py-8 px-4">
+          <p style={{ color: colors.text.muted }} className="text-sm">
+            AI generation history
+          </p>
+          <p style={{ color: colors.text.disabled }} className="text-xs mt-2">
+            Coming soon
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // Get panel title based on view
+  const getPanelTitle = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return 'Participants';
+      case 'checkin':
+        return 'Recent Check-ins';
+      case 'certificates':
+        return 'Eligible Participants';
+      case 'ai':
+        return 'AI Tools';
+      default:
+        return 'Participants';
+    }
+  };
+
+  return (
+    <div
+      className="flex flex-col overflow-hidden"
+      style={{
+        width: '280px',
+        height: 'calc(100% - 10px)',
+        backgroundColor: colors.background.primary,
+        borderRight: `1px solid ${colors.border.default}`,
+        marginLeft: '10px',
+      }}
+    >
+      {/* Header */}
+      <div
+        className="px-4 py-3 border-b flex items-center justify-between shrink-0"
+        style={{
+          backgroundColor: colors.background.primary,
+          borderColor: colors.border.default,
+        }}
+      >
+        <h3
+          className="font-semibold text-sm uppercase tracking-wide"
+          style={{ color: colors.text.secondary }}
+        >
+          {getPanelTitle()}
+        </h3>
+        <span
+          className="text-xs font-medium px-1.5 py-0.5 rounded"
+          style={{
+            backgroundColor: colors.background.tertiary,
+            color: colors.text.muted,
+          }}
+        >
+          {filteredRegistrants.length}
+        </span>
+      </div>
+
+      {/* Search Bar */}
+      {(currentView === 'dashboard' || currentView === 'certificates') && (
+        <div className="px-2 pt-2 pb-1 shrink-0">
+          <input
+            type="text"
+            placeholder="Search participants..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery?.(e.target.value)}
+            className="w-full px-2 py-1.5 rounded text-sm transition-colors duration-150 outline-none"
+            style={{
+              backgroundColor: colors.background.tertiary,
+              color: colors.text.primary,
+              border: `1px solid ${colors.border.default}`,
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = colors.border.focus;
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = colors.border.default;
+            }}
+          />
+        </div>
+      )}
+
+      {/* Content Area */}
+      {getPanelContent()}
+    </div>
+  );
+};
+
+// Participant List Item Component
+const ParticipantListItem = ({ participant, onClick }) => {
+  return (
+    <div
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
+      style={{
+        backgroundColor: 'transparent',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-2">
+        <StatusDot status={participant.status} size="sm" />
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-sm font-medium truncate"
+            style={{ color: colors.text.primary }}
+          >
+            {participant.name}
+          </p>
+          <p
+            className="text-xs truncate"
+            style={{ color: colors.text.muted }}
+          >
+            {participant.email}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Check-in List Item Component
+const CheckinListItem = ({ participant, onClick }) => {
+  const [currentTime] = React.useState(() => Date.now());
+  const timeAgo = useMemo(() => {
+    if (!participant.admittedAt) return '';
+    const diff = currentTime - new Date(participant.admittedAt).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  }, [participant.admittedAt, currentTime]);
+
+  return (
+    <div
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
+      style={{
+        backgroundColor: 'transparent',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-2">
+        <StatusDot status={participant.status} size="sm" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <p
+              className="text-sm font-medium truncate"
+              style={{ color: colors.text.primary }}
+            >
+              {participant.name}
+            </p>
+            <span
+              className="text-xs ml-2 shrink-0"
+              style={{ color: colors.text.disabled }}
+            >
+              {timeAgo}
+            </span>
+          </div>
+          {participant.onSpot && (
+            <span
+              className="text-xs px-1 py-0.5 rounded mt-0.5 inline-block"
+              style={{
+                backgroundColor: colors.accent.yellow.muted,
+                color: colors.accent.yellow.DEFAULT,
+              }}
+            >
+              On-spot
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Certificate List Item Component
+const CertificateListItem = ({ participant, onClick }) => {
+  return (
+    <div
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
+      style={{
+        backgroundColor: 'transparent',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-2">
+        <StatusDot status={participant.status} size="sm" />
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-sm font-medium truncate"
+            style={{ color: colors.text.primary }}
+          >
+            {participant.name}
+          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            {participant.certificateSent ? (
+              <span
+                className="text-xs"
+                style={{ color: colors.status.online }}
+              >
+                ✓ Sent
+              </span>
+            ) : (
+              <span
+                className="text-xs"
+                style={{ color: colors.text.muted }}
+              >
+                Pending
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MiddlePanel;

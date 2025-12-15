@@ -6,7 +6,7 @@ import { colorPalette, fontOptions } from '../constants/constants';
 export const CertificateBorder = ({ borderStyle, children }) => {
   if (borderStyle === 'double') {
     return (
-      <div className="border-[2px] border-gray-500 p-2">
+      <div className="border-2 border-gray-500 p-2">
         <div className="border-[6px] border-indigo-700 p-8">
           {children}
         </div>
@@ -15,7 +15,7 @@ export const CertificateBorder = ({ borderStyle, children }) => {
   }
   if (borderStyle === 'ornate-gold') {
     return (
-      <div className="border-[12px] border-double p-8"
+      <div className="border-12 border-double p-8"
            style={{ borderColor: '#D4AF37', backgroundImage: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)', borderImageSlice: 1 }}>
         {children}
       </div>
@@ -26,7 +26,7 @@ export const CertificateBorder = ({ borderStyle, children }) => {
   }
   // Default ('simple')
   return (
-    <div className="border-[8px] border-indigo-800 p-8">
+    <div className="border-8 border-indigo-800 p-8">
       {children}
     </div>
   );
@@ -120,7 +120,7 @@ export const CertificateGenerator = ({ person, onClose, certBody, nameFont, sigF
         
         <div 
           ref={certificateRef} 
-          className={`p-6 md:p-10 border-[1px] border-gray-400 ${bodyFontClass} w-full`}
+          className={`p-6 md:p-10 border border-gray-400 ${bodyFontClass} w-full`}
           style={{ backgroundColor: bgColorHex }}
         >
           <CertificateBorder borderStyle={certBorder}>
@@ -195,8 +195,12 @@ export const CertificateDesigner = ({
   certBorder, setCertBorder,
   certTitleFont, setCertTitleFont,
   threshold, setThreshold, 
-  eligibleCount 
+  eligibleCount,
+  onSendCertificates,
+  certificatesSending,
+  eligibleParticipants = []
 }) => {
+  const pendingCount = eligibleParticipants.filter(p => !p.certificateSent).length;
 
   const borderOptions = [
     { name: 'Simple (Default)', value: 'simple' },
@@ -314,6 +318,34 @@ export const CertificateDesigner = ({
              <span className="block text-3xl font-bold text-indigo-700">{eligibleCount}</span>
              <span className="block text-sm font-medium text-indigo-600">Eligible</span>
           </div>
+        </div>
+        
+        {/* Send Certificates Button */}
+        <div className="mt-4 flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-gray-800">
+              {pendingCount > 0 ? (
+                <>
+                  <span className="text-2xl font-bold text-blue-600">{pendingCount}</span>
+                  <span className="text-gray-700"> participant{pendingCount !== 1 ? 's' : ''} pending certificate delivery</span>
+                </>
+              ) : (
+                <span className="text-green-600">✓ All eligible participants have received certificates</span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={onSendCertificates}
+            disabled={certificatesSending || pendingCount === 0}
+            className={`inline-flex items-center px-6 py-3 font-semibold rounded-lg shadow-md transition duration-200 ${
+              certificatesSending || pendingCount === 0
+                ? 'bg-gray-400 text-gray-100 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            }`}
+          >
+            <Award className="h-5 w-5 mr-2" />
+            {certificatesSending ? 'Sending...' : 'Send Certificates'}
+          </button>
         </div>
       </div>
     </div>
