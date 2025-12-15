@@ -1,7 +1,7 @@
 // backend/emailClient.js
 import nodemailer from "nodemailer";
 
-export const mailer = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true,
@@ -11,10 +11,13 @@ export const mailer = nodemailer.createTransport({
   }
 });
 
+// Legacy export for backward compatibility
+export const mailer = transporter;
+
 // Optional - verify connection at server startup
 export const verifyMailer = async () => {
   try {
-    await mailer.verify();
+    await transporter.verify();
     console.log("📨 Mailer ready");
   } catch (err) {
     console.error("❌ Mailer error:", err);
