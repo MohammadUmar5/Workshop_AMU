@@ -298,25 +298,13 @@ export const CertificateDesigner = ({
       <div className="mt-6 pt-4 border-t border-gray-300">
         <h3 className="text-lg font-semibold text-gray-800">Certificate Eligibility</h3>
         <p className="text-sm text-gray-600 mb-2">
-          Set a minimum attendance time. Participants who left early but stayed for at least this duration will be eligible for a certificate.
+          Certificates will be sent to participants who attended at least <strong>75%</strong> of the workshop duration after the workshop ends.
         </p>
         <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <label htmlFor="threshold-minutes" className="block text-sm font-medium text-gray-700">
-              Allow leaving up to (minutes before end)
-            </label>
-            <input
-              type="number"
-              id="threshold-minutes"
-              min="0"
-              value={threshold}
-              onChange={(e) => setThreshold(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-            />
-          </div>
-          <div className="mt-6 text-center bg-indigo-100 p-3 rounded-lg">
+          <div className="text-center bg-indigo-100 p-4 rounded-lg flex-1">
              <span className="block text-3xl font-bold text-indigo-700">{eligibleCount}</span>
-             <span className="block text-sm font-medium text-indigo-600">Eligible</span>
+             <span className="block text-sm font-medium text-indigo-600">Eligible Participants</span>
+             <span className="block text-xs text-gray-600 mt-1">(≥ 75% attendance)</span>
           </div>
         </div>
         

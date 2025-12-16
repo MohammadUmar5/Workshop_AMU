@@ -1,7 +1,13 @@
 import { sendPassEmail } from './emailService';
+import { logDelivery, updateParticipantDeliveryStatus } from '../hooks/useWorkshopDB';
 
 // Standalone utility function to generate and send pass via email
-export const generateAndSendPass = async (participant) => {
+export const generateAndSendPass = async (participant, workshopId = null) => {
+  console.log('🎫 [FRONTEND] Starting pass generation...');
+  console.log('   → Participant:', participant.name);
+  console.log('   → Email:', participant.email);
+  console.log('   → Workshop ID:', workshopId);
+  
   try {
     const admissionTime = participant.admittedAt 
       ? new Date(participant.admittedAt).toLocaleTimeString('en-IN', { 
@@ -12,6 +18,7 @@ export const generateAndSendPass = async (participant) => {
         })
       : 'N/A';
     
+    console.log('   → Creating pass HTML...');
     // Create a temporary container
     const container = document.createElement('div');
     container.style.position = 'absolute';
@@ -91,6 +98,7 @@ export const generateAndSendPass = async (participant) => {
     // Wait longer for images and fonts to load
     await new Promise(resolve => setTimeout(resolve, 2000));
     
+    console.log('   → Converting HTML to image...');
     // Generate PNG
     const passImageBase64 = await window.htmlToImage.toPng(card, {
       backgroundColor: '#eff6ff',
@@ -100,11 +108,15 @@ export const generateAndSendPass = async (participant) => {
       height: card.offsetHeight || 600
     });
     
+    console.log('   → Pass image generated successfully');
+    console.log('   → Image size:', passImageBase64.length, 'bytes');
+    
     // Remove temporary element
     document.body.removeChild(container);
     
+    console.log('   → Sending pass email...');
     // Send email with attachment
-    await sendPassEmail({
+    const emailResult = await sendPassEmail({
       email: participant.email,
       name: participant.name,
       subject: 'Workshop Check-in Confirmation - Your Pass',
@@ -126,10 +138,44 @@ export const generateAndSendPass = async (participant) => {
       attachmentBase64: passImageBase64
     });
 
-    console.log(`Pass sent successfully to ${participant.email}`);
+    console.log('✅ [FRONTEND] Pass sent successfully!');
+    
+    // Log delivery to database if workshopId is provided
+    if (workshopId && participant.id) {
+      console.log('💾 [DATABASE] Logging pass delivery...');
+      await logDelivery(
+        workshopId,
+        participant.id,
+        'pass',
+        participant.email,
+        participant.name,
+        'sent',
+        { messageId: emailResult.messageId }
+      );
+      await updateParticipantDeliveryStatus(participant.id, 'pass', true);
+      console.log('✅ [DATABASE] Pass delivery logged');
+    }
+    
     return true;
   } catch (error) {
-    console.error(`Failed to send pass email to ${participant.email}:`, error);
+    console.error('❌ [FRONTEND] Pass generation/sending failed:', error.message);
+    console.error('   → Full error:', error);
+    
+    // Log failure to database if workshopId is provided
+    if (workshopId && participant.id) {
+      console.log('💾 [DATABASE] Logging pass failure...');
+      await logDelivery(
+        workshopId,
+        participant.id,
+        'pass',
+        participant.email,
+        participant.name,
+        'failed',
+        { errorMessage: error.message }
+      );
+      console.log('✅ [DATABASE] Pass failure logged');
+    }
+    
     return false;
   }
 };

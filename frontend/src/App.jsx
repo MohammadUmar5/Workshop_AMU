@@ -3,6 +3,7 @@ import { Search, UserPlus, LogOut, Sparkles, Award, Settings } from "lucide-reac
 import { generateAndSendPass } from './utils/passGenerator';
 import { generateAndSendCertificate } from './utils/certificateGenerator';
 import { parseCSV } from './utils/csvParser';
+import * as workshopDB from './hooks/useWorkshopDB';
 
 
 // Import constants
@@ -97,6 +98,69 @@ held on ${new Date().toLocaleDateString("en-IN", {
   const [sendCertificatesPermission, setSendCertificatesPermission] = useState(false);
   const sendingInProgressRef = useRef(false);
 
+  // --- Database State ---
+  const [currentWorkshopId, setCurrentWorkshopId] = useState(null);
+  const [dbInitialized, setDbInitialized] = useState(false);
+
+  // --- Resume active workshop on mount ---
+  useEffect(() => {
+    const resumeWorkshop = async () => {
+      const result = await workshopDB.getActiveWorkshop();
+      if (result.success && result.data) {
+        const workshop = result.data;
+        setCurrentWorkshopId(workshop.id);
+        setWorkshopState(workshop.state);
+        setWorkshopEndTime(new Date(workshop.end_time));
+        setIsPaused(workshop.is_paused);
+        setCertificateThreshold(workshop.certificate_threshold);
+        
+        // Calculate time left
+        const now = new Date();
+        const endTime = new Date(workshop.end_time);
+        const secondsLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+        setTimeLeft(secondsLeft);
+        
+        // Load participants
+        const participantsResult = await workshopDB.getWorkshopParticipants(workshop.id);
+        if (participantsResult.success) {
+          // Convert database format to app format
+          const convertedParticipants = participantsResult.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            email: p.email,
+            phone: p.phone,
+            department: p.department,
+            year: p.year,
+            diet: p.diet,
+            status: p.status,
+            admittedAt: p.admitted_at ? new Date(p.admitted_at) : null,
+            leftAt: p.left_at ? new Date(p.left_at) : null,
+            leaveReason: p.leave_reason,
+            onSpot: p.on_spot,
+            certificateSent: p.certificate_sent,
+            passSent: p.pass_sent
+          }));
+          setRegistrants(convertedParticipants);
+        }
+        
+        // Load certificate template
+        const certTemplateResult = await workshopDB.getActiveCertificateTemplate(workshop.id);
+        if (certTemplateResult.success && certTemplateResult.data) {
+          const template = certTemplateResult.data;
+          setCertBody(template.body);
+          setNameFont(template.name_font);
+          setCertTitleFont(template.title_font);
+          setSigFont(template.sig_font);
+          setCertBg(template.bg_color);
+          setCertBorder(template.border_style);
+        }
+      }
+      setDbInitialized(true);
+    };
+
+    resumeWorkshop();
+  }, []);
+
   //load html-to-image script
   useEffect(() => {
     const scriptId = "html-to-image-script";
@@ -130,6 +194,13 @@ held on ${new Date().toLocaleDateString("en-IN", {
         clearInterval(interval);
         setWorkshopState("finished");
         setTimeLeft(0);
+        
+        // Mark workshop as finished in database
+        if (currentWorkshopId) {
+          workshopDB.updateWorkshopState(currentWorkshopId, "finished", false);
+          workshopDB.markPendingAsAbsent(currentWorkshopId);
+        }
+        
         // Mark all remaining 'pending' as 'absent'
         setRegistrants((prevRegistrants) =>
           prevRegistrants.map((person) =>
@@ -234,13 +305,21 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // [NEW] Certificate Eligibility Logic
   const eligibleForCertificate = useMemo(() => {
-    const thresholdInSeconds = (parseInt(certificateThreshold, 10) || 0) * 60;
-    const minimumStayDuration = workshopDurationInSeconds - thresholdInSeconds;
+    // Certificate eligibility requires:
+    // 1. Workshop must have ended
+    // 2. Participant must be admitted
+    // 3. Participant must have attended at least 75% of workshop duration
+    
+    if (workshopState !== 'finished') {
+      return []; // No one eligible until workshop ends
+    }
+    
+    const minimumStayDuration = workshopDurationInSeconds * 0.75; // 75% attendance rule
 
     // 1. All participants who stayed the whole time
     const fullTime = admittedPeople;
 
-    // 2. Participants who left early but met the threshold
+    // 2. Participants who left early but met the 75% attendance requirement
     const eligibleEarlyLeavers = earlyLeavers.filter((person) => {
       if (!person.admittedAt || !person.leftAt) return false;
       const stayDuration =
@@ -252,9 +331,9 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
     return [...fullTime, ...eligibleEarlyLeavers];
   }, [
+    workshopState,
     admittedPeople,
     earlyLeavers,
-    certificateThreshold,
     workshopDurationInSeconds,
   ]);
 
@@ -270,6 +349,8 @@ held on ${new Date().toLocaleDateString("en-IN", {
       if (!sendCertificatesPermission) {
         return;
       }
+      
+      console.log('\n🎓 [WORKFLOW] Step 5: Sending certificates with manual approval...');
 
       // Prevent concurrent executions using ref
       if (sendingInProgressRef.current) {
@@ -307,7 +388,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
       for (const participant of pendingParticipants) {
         try {
-          const success = await generateAndSendCertificate(participant, certificateConfig);
+          const success = await generateAndSendCertificate(participant, certificateConfig, currentWorkshopId);
           if (success) {
             sent++;
             setCertificatesSent(sent);
@@ -341,7 +422,11 @@ held on ${new Date().toLocaleDateString("en-IN", {
   }, [workshopState, eligibleForCertificate, sendCertificatesPermission]);
 
   // --- [MODIFIED] Handle Start Workshop ---
-  const handleStartWorkshop = () => {
+  const handleStartWorkshop = async () => {
+    console.log('\n🚀 [WORKFLOW] Step 2: Starting workshop...');
+    console.log('   → Duration:', durationHours, 'hours', durationMinutes, 'minutes');
+    console.log('   → Certificate threshold:', certificateThreshold, 'minutes');
+    
     if (workshopDurationInSeconds <= 0) {
       showErrorMessage("Duration must be greater than 0 minutes.");
       return;
@@ -351,33 +436,65 @@ held on ${new Date().toLocaleDateString("en-IN", {
     const endTime = new Date(
       startTime.getTime() + workshopDurationInSeconds * 1000
     );
-    setWorkshopEndTime(endTime);
-    setWorkshopState("active");
-    setTimeLeft(workshopDurationInSeconds);
-    setIsPaused(false);
+    
+    console.log('   → Workshop will end at:', endTime.toLocaleString());
+    
+    // Create workshop in database
+    const result = await workshopDB.createWorkshop(
+      durationHours,
+      durationMinutes,
+      certificateThreshold
+    );
+    
+    if (result.success) {
+      console.log('✅ [WORKFLOW] Workshop started successfully!');
+      console.log('   → Workshop ID:', result.data.id);
+      
+      setCurrentWorkshopId(result.data.id);
+      setWorkshopEndTime(endTime);
+      setWorkshopState("active");
+      setTimeLeft(workshopDurationInSeconds);
+      setIsPaused(false);
+    } else {
+      console.error('❌ [WORKFLOW] Failed to start workshop:', result.error);
+      showErrorMessage("Failed to start workshop in database");
+    }
   };
 
   // --- Handle Pause/Resume Workshop ---
-  const handlePauseWorkshop = () => {
-    if (workshopState === "active") {
-      setIsPaused(!isPaused);
-      if (!isPaused) {
-        // Pausing - no need to update end time yet
+  const handlePauseWorkshop = async () => {
+    if (workshopState === "active" && currentWorkshopId) {
+      const newPausedState = !isPaused;
+      setIsPaused(newPausedState);
+      
+      if (newPausedState) {
+        // Pausing - update database
+        await workshopDB.updateWorkshopState(currentWorkshopId, "active", true);
       } else {
         // Resuming - recalculate end time based on timeLeft
         const now = new Date();
         const newEndTime = new Date(now.getTime() + timeLeft * 1000);
         setWorkshopEndTime(newEndTime);
+        
+        // Update database
+        await workshopDB.updateWorkshopState(currentWorkshopId, "active", false);
+        await workshopDB.updateWorkshopEndTime(currentWorkshopId, newEndTime);
       }
     }
   };
 
   // --- Handle Reset Workshop ---
-  const handleResetWorkshop = () => {
+  const handleResetWorkshop = async () => {
+    if (currentWorkshopId) {
+      // Mark workshop as finished in database
+      await workshopDB.updateWorkshopState(currentWorkshopId, "idle", false);
+    }
+    
     setWorkshopState("idle");
     setWorkshopEndTime(null);
     setIsPaused(false);
     setTimeLeft(durationHours * 3600 + durationMinutes * 60);
+    setCurrentWorkshopId(null);
   };
 
   const showErrorMessage = (message) => {
@@ -387,6 +504,9 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- Handle Validation ---
   const handleValidate = async (personId) => {
+    console.log('\n👤 [WORKFLOW] Step 3a: Check-in participant...');
+    console.log('   → Participant ID:', personId);
+    
     if (workshopState !== "active") {
       return showErrorMessage("Workshop is not active.");
     }
@@ -412,12 +532,19 @@ held on ${new Date().toLocaleDateString("en-IN", {
     setRegistrants(updatedRegistrants);
     setCurrentCard(validatedPerson);
     setSearchQuery("");
+    
+    // Persist admission to database
+    if (currentWorkshopId && validatedPerson.id) {
+      workshopDB.updateParticipantStatus(validatedPerson.id, "admitted", {
+        admitted_at: admissionTime.toISOString()
+      });
+    }
 
     // ✅ Auto-send pass via email (only if not already sent)
     if (!validatedPerson.passSent) {
       setTimeout(async () => {
         setPassesSending(true);
-        const success = await generateAndSendPass(validatedPerson);
+        const success = await generateAndSendPass(validatedPerson, currentWorkshopId);
         if (success) {
           setPassesSent(prev => prev + 1);
           // Mark pass as sent
@@ -434,6 +561,10 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- [NEW] Handle On-Spot Registration ---
   const handleOnSpotRegister = async (personData) => {
+    console.log('\n👤 [WORKFLOW] Step 3b: On-spot registration...');
+    console.log('   → Name:', personData.name);
+    console.log('   → Email:', personData.email);
+    
     if (workshopState !== "active") {
       return showErrorMessage("Workshop is not active.");
     }
@@ -468,7 +599,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
     }
 
     const admissionTime = new Date();
-    const newPerson = {
+    let newPerson = {
       ...personData,
       id: 1000 + registrants.length,
       status: "admitted",
@@ -479,6 +610,18 @@ held on ${new Date().toLocaleDateString("en-IN", {
       certificateSent: false,
       passSent: false,
     };
+    
+    // Save to database if workshop is active
+    if (currentWorkshopId) {
+      const result = await workshopDB.addOnSpotParticipant(currentWorkshopId, personData);
+      if (result.success) {
+        // Use database ID
+        newPerson = {
+          ...newPerson,
+          id: result.data.id
+        };
+      }
+    }
 
     setRegistrants((prev) => [...prev, newPerson]);
     setCurrentCard(newPerson);
@@ -486,7 +629,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
     // ✅ Auto-send pass via email
     setTimeout(async () => {
       setPassesSending(true);
-      const success = await generateAndSendPass(newPerson);
+      const success = await generateAndSendPass(newPerson, currentWorkshopId);
       if (success) {
         setPassesSent(prev => prev + 1);
         // Mark pass as sent
@@ -506,6 +649,10 @@ held on ${new Date().toLocaleDateString("en-IN", {
   };
 
   const handleSubmitLeaveEarly = (person, reason) => {
+    console.log('\n👤 [WORKFLOW] Step 3c: Mark early leave...');
+    console.log('   → Name:', person.name);
+    console.log('   → Reason:', reason);
+    
     // Verify the person is currently admitted
     const currentPerson = registrants.find(p => p.id === person.id);
     if (!currentPerson) {
@@ -534,6 +681,14 @@ held on ${new Date().toLocaleDateString("en-IN", {
           : p
       )
     );
+    
+    // Persist to database
+    if (currentWorkshopId && person.id) {
+      workshopDB.updateParticipantStatus(person.id, "left_early", {
+        left_at: leaveTime.toISOString(),
+        leave_reason: reason
+      });
+    }
 
     setPersonLeaving(null); // Close modal
     setEarlyLeaveSearchQuery(""); // Clear search
@@ -666,16 +821,60 @@ held on ${new Date().toLocaleDateString("en-IN", {
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (file) {
+        console.log('\n📋 [WORKFLOW] Step 1: Importing CSV file...');
+        console.log('   → File name:', file.name);
+        console.log('   → File size:', file.size, 'bytes');
+        
         try {
           const text = await file.text();
+          console.log('   → Parsing CSV data...');
           const data = parseCSV(text);
+          console.log('   → Parsed', data.length, 'participants');
           // Initialize certificateSent and passSent flags for each participant
           const dataWithFlags = data.map(person => ({
             ...person,
             certificateSent: false,
             passSent: false
           }));
-          setRegistrants(dataWithFlags);
+          
+          // Save to database if workshop is active
+          if (currentWorkshopId) {
+            const result = await workshopDB.bulkInsertParticipants(currentWorkshopId, dataWithFlags);
+            if (result.success) {
+              // Use the data returned from database (includes IDs)
+              const convertedParticipants = result.data.map(p => ({
+                id: p.id,
+                name: p.name,
+                email: p.email,
+                phone: p.phone,
+                department: p.department,
+                year: p.year,
+                diet: p.diet,
+                status: p.status,
+                admittedAt: p.admitted_at ? new Date(p.admitted_at) : null,
+                leftAt: p.left_at ? new Date(p.left_at) : null,
+                leaveReason: p.leave_reason,
+                onSpot: p.on_spot,
+                certificateSent: p.certificate_sent,
+                passSent: p.pass_sent
+              }));
+              
+              // Merge with existing registrants
+              setRegistrants(prev => [...prev, ...convertedParticipants]);
+              
+              if (result.skipped > 0) {
+                alert(`Imported ${result.inserted} participants. ${result.skipped} duplicates skipped.`);
+              }
+            } else {
+              console.error('Database save failed:', result.error);
+              alert('Warning: Participants loaded but not saved to database.');
+              setRegistrants(dataWithFlags);
+            }
+          } else {
+            // No active workshop - block import
+            alert('⚠️ Please start the workshop first (set duration and click Start), then import participants.\n\nThis ensures your participant data is saved to the database.');
+            return;
+          }
         } catch (error) {
           console.error('Error loading CSV:', error);
           alert('Failed to load CSV file. Please check the file format.');
@@ -842,8 +1041,36 @@ held on ${new Date().toLocaleDateString("en-IN", {
               {selectedCertAction === 'certificate' && (
                 <CertificateCustomizationPanel
                   currentConfig={certTemplateConfig}
-                  onSave={(config, templatePath) => {
+                  onSave={async (config, templatePath) => {
                     setCertTemplateConfig(config);
+                    
+                    // Update individual state variables
+                    setCertBody(config.body);
+                    setNameFont(config.nameFont);
+                    setCertTitleFont(config.titleFont);
+                    setSigFont(config.sigFont);
+                    setCertBg(config.bgColor);
+                    setCertBorder(config.borderStyle);
+                    
+                    // Save to database if workshop is active
+                    if (currentWorkshopId) {
+                      const result = await workshopDB.saveCertificateTemplate(currentWorkshopId, {
+                        certBody: config.body,
+                        nameFont: config.nameFont,
+                        certTitleFont: config.titleFont,
+                        sigFont: config.sigFont,
+                        certBg: config.bgColor,
+                        certBorder: config.borderStyle,
+                        templateImageUrl: templatePath
+                      });
+                      
+                      if (result.success) {
+                        console.log('Certificate template saved to database');
+                      } else {
+                        console.error('Failed to save template to database:', result.error);
+                      }
+                    }
+                    
                     console.log('Certificate template saved:', templatePath);
                     setSelectedCertAction(null); // Close panel after save
                   }}
@@ -854,8 +1081,31 @@ held on ${new Date().toLocaleDateString("en-IN", {
               {selectedCertAction === 'pass' && (
                 <PassCustomizationPanel
                   currentConfig={passTemplateConfig}
-                  onSave={(config, templatePath) => {
+                  onSave={async (config, templatePath) => {
                     setPassTemplateConfig(config);
+                    
+                    // Save to database if workshop is active
+                    if (currentWorkshopId) {
+                      const result = await workshopDB.savePassTemplate(currentWorkshopId, {
+                        bgColor: config.bgColor,
+                        borderColor: config.borderColor,
+                        titleColor: config.titleColor,
+                        subtitleColor: config.subtitleColor,
+                        textColor: config.textColor,
+                        highlightBgColor: config.highlightBgColor,
+                        accentColor: config.accentColor,
+                        showLogos: config.showLogos,
+                        borderWidth: config.borderWidth,
+                        templateImageUrl: templatePath
+                      });
+                      
+                      if (result.success) {
+                        console.log('Pass template saved to database');
+                      } else {
+                        console.error('Failed to save template to database:', result.error);
+                      }
+                    }
+                    
                     console.log('Pass template saved:', templatePath);
                     setSelectedCertAction(null); // Close panel after save
                   }}
@@ -899,15 +1149,15 @@ held on ${new Date().toLocaleDateString("en-IN", {
                     </div>
                     <button
                       onClick={handleSendCertificates}
-                      disabled={certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
+                      disabled={certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
                       className="inline-flex items-center px-6 py-3 font-semibold rounded-lg shadow-md transition duration-200"
                       style={{
-                        backgroundColor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
+                        backgroundColor: (certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
                           ? colors.background.hover
                           : colors.accent.blurple,
                         color: '#ffffff',
-                        opacity: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
-                        cursor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
+                        opacity: (certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
+                        cursor: (certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
                           ? 'not-allowed' 
                           : 'pointer',
                       }}
