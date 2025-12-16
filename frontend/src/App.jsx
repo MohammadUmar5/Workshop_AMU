@@ -141,6 +141,34 @@ held on ${new Date().toLocaleDateString("en-IN", {
             passSent: p.pass_sent
           }));
           setRegistrants(convertedParticipants);
+          
+          // Restore progress counters from database
+          console.log('📊 [DATABASE] Restoring progress counters...');
+          
+          // Count passes sent from participant flags
+          const passesSentCount = convertedParticipants.filter(p => p.passSent).length;
+          setPassesSent(passesSentCount);
+          console.log('   → Passes sent:', passesSentCount);
+          
+          // Count certificates sent from participant flags
+          const certificatesSentCount = convertedParticipants.filter(p => p.certificateSent).length;
+          setCertificatesSent(certificatesSentCount);
+          console.log('   → Certificates sent:', certificatesSentCount);
+          
+          // Fetch failure stats from delivery logs
+          const passStatsResult = await workshopDB.getDeliveryStats(workshop.id, 'pass');
+          if (passStatsResult.success) {
+            setPassesFailed(passStatsResult.data.failed);
+            console.log('   → Passes failed:', passStatsResult.data.failed);
+          }
+          
+          const certStatsResult = await workshopDB.getDeliveryStats(workshop.id, 'certificate');
+          if (certStatsResult.success) {
+            setCertificatesFailed(certStatsResult.data.failed);
+            console.log('   → Certificates failed:', certStatsResult.data.failed);
+          }
+          
+          console.log('✅ [DATABASE] Progress counters restored');
         }
         
         // Load certificate template
@@ -485,6 +513,17 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- Handle Reset Workshop ---
   const handleResetWorkshop = async () => {
+    // Check if certificates are pending before allowing reset
+    if (workshopState === 'finished' && eligibleForCertificate.length > 0) {
+      const pendingCertificates = eligibleForCertificate.filter(p => !p.certificateSent);
+      if (pendingCertificates.length > 0) {
+        showErrorMessage(
+          `Cannot reset workshop: ${pendingCertificates.length} participant(s) still need certificates. Please send all certificates before resetting.`
+        );
+        return;
+      }
+    }
+    
     if (currentWorkshopId) {
       // Mark workshop as finished in database
       await workshopDB.updateWorkshopState(currentWorkshopId, "idle", false);
@@ -495,6 +534,12 @@ held on ${new Date().toLocaleDateString("en-IN", {
     setIsPaused(false);
     setTimeLeft(durationHours * 3600 + durationMinutes * 60);
     setCurrentWorkshopId(null);
+    
+    // Reset progress counters
+    setPassesSent(0);
+    setPassesFailed(0);
+    setCertificatesSent(0);
+    setCertificatesFailed(0);
   };
 
   const showErrorMessage = (message) => {
@@ -909,7 +954,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
       
       {/* Combined Middle + Main Panel Container */}
       <div 
-        className="flex-1 flex overflow-hidden rounded-lg mt-7"
+        className="flex-1 flex overflow-hidden rounded-xl mt-7"
         style={{ 
           backgroundColor: colors.background.primary,
           border: `1px solid ${colors.border.default}`,

@@ -1,14 +1,14 @@
-import React, { useMemo } from 'react';
-import { Palette, FileText } from 'lucide-react';
-import { colors } from '../theme/colors';
-import StatusDot from './ui/StatusDot';
+import React, { useMemo } from "react";
+import { Palette, FileText } from "lucide-react";
+import { colors } from "../theme/colors";
+import StatusDot from "./ui/StatusDot";
 
 /**
  * MiddlePanel Component
- * 
+ *
  * Context-aware middle panel that displays different content based on current view
  * Mimics Discord's channel/DM list panel between server sidebar and chat area
- * 
+ *
  * Props:
  * @param {string} currentView - Current active view (dashboard, checkin, certificates, ai)
  * @param {array} registrants - All participants
@@ -23,7 +23,7 @@ const MiddlePanel = ({
   currentView,
   registrants = [],
   onSelectParticipant,
-  searchQuery = '',
+  searchQuery = "",
   setSearchQuery,
   onSelectCertAction,
   selectedCertAction,
@@ -43,13 +43,13 @@ const MiddlePanel = ({
   // Get content based on current view
   const getPanelContent = () => {
     switch (currentView) {
-      case 'dashboard':
+      case "dashboard":
         return renderParticipantList();
-      case 'checkin':
+      case "checkin":
         return renderRecentCheckins();
-      case 'certificates':
+      case "certificates":
         return renderEligibleList();
-      case 'ai':
+      case "ai":
         return renderGenerationHistory();
       default:
         return renderParticipantList();
@@ -69,7 +69,7 @@ const MiddlePanel = ({
           {sortedByStatus.length === 0 ? (
             <div className="text-center py-8 px-4">
               <p style={{ color: colors.text.muted }} className="text-sm">
-                {searchQuery ? 'No participants found' : 'No participants yet'}
+                {searchQuery ? "No participants found" : "No participants yet"}
               </p>
             </div>
           ) : (
@@ -89,7 +89,7 @@ const MiddlePanel = ({
   // Render recent check-ins (for Check-in view)
   const renderRecentCheckins = () => {
     const recentAdmitted = [...registrants]
-      .filter((p) => p.status === 'admitted')
+      .filter((p) => p.status === "admitted")
       .sort((a, b) => new Date(b.admittedAt) - new Date(a.admittedAt))
       .slice(0, 50);
 
@@ -119,7 +119,7 @@ const MiddlePanel = ({
   // Render eligible participants (for Certificates view)
   const renderEligibleList = () => {
     const eligibleParticipants = filteredRegistrants.filter(
-      (p) => p.status === 'admitted' || p.status === 'left_early'
+      (p) => p.status === "admitted" || p.status === "left_early"
     );
 
     return (
@@ -164,16 +164,16 @@ const MiddlePanel = ({
   // Get panel title based on view
   const getPanelTitle = () => {
     switch (currentView) {
-      case 'dashboard':
-        return 'Participants';
-      case 'checkin':
-        return 'Recent Check-ins';
-      case 'certificates':
-        return 'Eligible Participants';
-      case 'ai':
-        return 'AI Tools';
+      case "dashboard":
+        return "Participants";
+      case "checkin":
+        return "Recent Check-ins";
+      case "certificates":
+        return "Eligible Participants";
+      case "ai":
+        return "AI Tools";
       default:
-        return 'Participants';
+        return "Participants";
     }
   };
 
@@ -181,8 +181,8 @@ const MiddlePanel = ({
     <div
       className="flex flex-col overflow-hidden"
       style={{
-        width: '290px',
-        height: 'calc(100% - 10px)',
+        width: "290px",
+        height: "calc(100% - 10px)",
         backgroundColor: colors.background.primary,
         borderRight: `1px solid ${colors.border.default}`,
       }}
@@ -213,14 +213,14 @@ const MiddlePanel = ({
       </div>
 
       {/* Search Bar */}
-      {(currentView === 'dashboard' || currentView === 'certificates') && (
+      {(currentView === "dashboard" || currentView === "certificates") && (
         <div className="px-2 pt-2 pb-1 shrink-0">
           <input
             type="text"
             placeholder="Search participants..."
             value={searchQuery}
             onChange={(e) => setSearchQuery?.(e.target.value)}
-            className="w-full px-2 py-1.5 rounded text-sm transition-colors duration-150 outline-none"
+            className="w-full px-2 py-1.5 rounded-lg text-sm transition-colors duration-150 outline-none"
             style={{
               backgroundColor: colors.background.tertiary,
               color: colors.text.primary,
@@ -237,20 +237,20 @@ const MiddlePanel = ({
       )}
 
       {/* Customization List Items - Only show in certificates view */}
-      {currentView === 'certificates' && (
+      {currentView === "certificates" && (
         <div className="px-2 pt-2 pb-2 shrink-0">
           <CustomizationListItem
             icon={<Palette size={16} />}
             label="Customize Certificate"
-            isSelected={selectedCertAction === 'certificate'}
-            onClick={() => onSelectCertAction('certificate')}
+            isSelected={selectedCertAction === "certificate"}
+            onClick={() => onSelectCertAction("certificate")}
           />
-          
+
           <CustomizationListItem
             icon={<FileText size={16} />}
             label="Customize Pass"
-            isSelected={selectedCertAction === 'pass'}
-            onClick={() => onSelectCertAction('pass')}
+            isSelected={selectedCertAction === "pass"}
+            onClick={() => onSelectCertAction("pass")}
           />
         </div>
       )}
@@ -267,13 +267,13 @@ const ParticipantListItem = ({ participant, onClick }) => {
     <div
       className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
       style={{
-        backgroundColor: 'transparent',
+        backgroundColor: "transparent",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.backgroundColor = "transparent";
       }}
       onClick={onClick}
     >
@@ -286,10 +286,7 @@ const ParticipantListItem = ({ participant, onClick }) => {
           >
             {participant.name}
           </p>
-          <p
-            className="text-xs truncate"
-            style={{ color: colors.text.muted }}
-          >
+          <p className="text-xs truncate" style={{ color: colors.text.muted }}>
             {participant.email}
           </p>
         </div>
@@ -302,10 +299,10 @@ const ParticipantListItem = ({ participant, onClick }) => {
 const CheckinListItem = ({ participant, onClick }) => {
   const [currentTime] = React.useState(() => Date.now());
   const timeAgo = useMemo(() => {
-    if (!participant.admittedAt) return '';
+    if (!participant.admittedAt) return "";
     const diff = currentTime - new Date(participant.admittedAt).getTime();
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Just now';
+    if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ago`;
@@ -315,13 +312,13 @@ const CheckinListItem = ({ participant, onClick }) => {
     <div
       className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
       style={{
-        backgroundColor: 'transparent',
+        backgroundColor: "transparent",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.backgroundColor = "transparent";
       }}
       onClick={onClick}
     >
@@ -365,13 +362,13 @@ const CertificateListItem = ({ participant, onClick }) => {
     <div
       className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
       style={{
-        backgroundColor: 'transparent',
+        backgroundColor: "transparent",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.backgroundColor = "transparent";
       }}
       onClick={onClick}
     >
@@ -386,17 +383,11 @@ const CertificateListItem = ({ participant, onClick }) => {
           </p>
           <div className="flex items-center gap-2 mt-0.5">
             {participant.certificateSent ? (
-              <span
-                className="text-xs"
-                style={{ color: colors.status.online }}
-              >
+              <span className="text-xs" style={{ color: colors.status.online }}>
                 ✓ Sent
               </span>
             ) : (
-              <span
-                className="text-xs"
-                style={{ color: colors.text.muted }}
-              >
+              <span className="text-xs" style={{ color: colors.text.muted }}>
                 Pending
               </span>
             )}
@@ -414,27 +405,28 @@ const CustomizationListItem = ({ icon, label, isSelected, onClick }) => {
       onClick={onClick}
       className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150 flex items-center gap-2"
       style={{
-        backgroundColor: isSelected ? colors.background.hover : 'transparent',
-        borderLeft: isSelected ? `3px solid ${colors.accent.blurple}` : '3px solid transparent',
+        backgroundColor: isSelected ? colors.background.hover : "transparent",
+        borderLeft: isSelected
+          ? `3px solid ${colors.accent.blurple}`
+          : "3px solid transparent",
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.backgroundColor = colors.background.middlePanelHover;
+          e.currentTarget.style.backgroundColor =
+            colors.background.middlePanelHover;
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.backgroundColor = "transparent";
         }
       }}
     >
-      <div style={{ color: colors.text.secondary }}>
-        {icon}
-      </div>
-      <span 
+      <div style={{ color: colors.text.secondary }}>{icon}</div>
+      <span
         className="text-sm font-medium"
-        style={{ 
-          color: isSelected ? colors.text.primary : colors.text.secondary 
+        style={{
+          color: isSelected ? colors.text.primary : colors.text.secondary,
         }}
       >
         {label}

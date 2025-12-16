@@ -89,15 +89,15 @@ export async function updateWorkshopState(workshopId, state, isPaused = false) {
 }
 
 /**
- * Get active workshop (for resume functionality)
- * @returns {Object} Active workshop or null
+ * Get active or finished workshop (for resume functionality)
+ * @returns {Object} Active/finished workshop or null
  */
 export async function getActiveWorkshop() {
   try {
     const { data, error } = await supabase
       .from('workshops')
       .select('*')
-      .eq('state', 'active')
+      .in('state', ['active', 'finished'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
