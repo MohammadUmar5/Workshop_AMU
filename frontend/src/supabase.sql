@@ -10,6 +10,7 @@ CREATE TABLE workshops (
   certificate_threshold INTEGER DEFAULT 0,
   is_paused BOOLEAN DEFAULT false,
   paused_at TIMESTAMPTZ,
+  paused_time_left INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   finished_at TIMESTAMPTZ
 );

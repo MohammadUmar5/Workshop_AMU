@@ -417,17 +417,6 @@ const CustomizationListItem = ({ icon, label, isSelected, onClick }) => {
           e.currentTarget.style.borderLeftColor = "transparent";
         }
       }}
-      onMouseEnter={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.backgroundColor =
-            colors.background.middlePanelHover;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.backgroundColor = "transparent";
-        }
-      }}
     >
       <div style={{ color: colors.text.secondary }}>{icon}</div>
       <span

@@ -133,6 +133,29 @@ export async function updateWorkshopEndTime(workshopId, endTime) {
   }
 }
 
+/**
+ * Update paused time left (when pausing timer)
+ * @param {string} workshopId - Workshop UUID
+ * @param {number|null} timeLeft - Remaining time in seconds (null to clear)
+ * @returns {Object} Update result
+ */
+export async function updatePausedTimeLeft(workshopId, timeLeft) {
+  try {
+    const { data, error } = await supabase
+      .from('workshops')
+      .update({ paused_time_left: timeLeft })
+      .eq('id', workshopId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error updating paused time left:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // ============================================
 // PARTICIPANT OPERATIONS
 // ============================================

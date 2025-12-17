@@ -96,6 +96,15 @@ held on ${new Date().toLocaleDateString("en-IN", {
   const [passesSent, setPassesSent] = useState(0);
   const [passesFailed, setPassesFailed] = useState(0);
 
+  // --- Calculate progress from persistent data (survives refresh) ---
+  const passesSentCount = useMemo(() => {
+    return registrants.filter(p => p.passSent).length;
+  }, [registrants]);
+
+  const certificatesSentCount = useMemo(() => {
+    return registrants.filter(p => p.certificateSent).length;
+  }, [registrants]);
+
   // --- Permission States for Manual Trigger ---
   const [sendCertificatesPermission, setSendCertificatesPermission] = useState(false);
   const sendingInProgressRef = useRef(false);
@@ -111,10 +120,18 @@ held on ${new Date().toLocaleDateString("en-IN", {
       if (result.success && result.data) {
         const workshop = result.data;
         
-        // Calculate time left
+        // Calculate time left - use paused_time_left if paused, otherwise calculate from end_time
         const now = new Date();
         const endTime = new Date(workshop.end_time);
-        const secondsLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+        let secondsLeft;
+        
+        if (workshop.is_paused && workshop.paused_time_left !== null) {
+          // Use stored paused time to prevent time leakage
+          secondsLeft = workshop.paused_time_left;
+        } else {
+          // Calculate from end_time for running timers
+          secondsLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+        }
         
         // Only resume as active if time hasn't expired and state is active
         // If time has expired or state is finished, set to finished/idle
@@ -480,17 +497,19 @@ held on ${new Date().toLocaleDateString("en-IN", {
       setIsPaused(newPausedState);
       
       if (newPausedState) {
-        // Pausing - update database
+        // Pausing - store remaining time and update database
         await workshopDB.updateWorkshopState(currentWorkshopId, "active", true);
+        await workshopDB.updatePausedTimeLeft(currentWorkshopId, timeLeft);
       } else {
         // Resuming - recalculate end time based on timeLeft
         const now = new Date();
         const newEndTime = new Date(now.getTime() + timeLeft * 1000);
         setWorkshopEndTime(newEndTime);
         
-        // Update database
+        // Update database and clear paused time
         await workshopDB.updateWorkshopState(currentWorkshopId, "active", false);
         await workshopDB.updateWorkshopEndTime(currentWorkshopId, newEndTime);
+        await workshopDB.updatePausedTimeLeft(currentWorkshopId, null);
       }
     }
   };
@@ -1027,10 +1046,10 @@ held on ${new Date().toLocaleDateString("en-IN", {
               setDurationHours={setDurationHours}
               durationMinutes={durationMinutes}
               setDurationMinutes={setDurationMinutes}
-              passesSent={passesSent}
+              passesSent={passesSentCount}
               passesFailed={passesFailed}
               passesSending={passesSending}
-              certificatesSent={certificatesSent}
+              certificatesSent={certificatesSentCount}
               certificatesFailed={certificatesFailed}
               certificatesSending={certificatesSending}
               eligibleForCertificate={eligibleForCertificate.length}
@@ -1187,15 +1206,15 @@ held on ${new Date().toLocaleDateString("en-IN", {
                     </div>
                     <button
                       onClick={handleSendCertificates}
-                      disabled={certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
+                      disabled={workshopState !== 'finished' || certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
                       className="inline-flex items-center px-6 py-3 font-semibold rounded-lg shadow-md transition duration-200"
                       style={{
-                        backgroundColor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
+                        backgroundColor: (workshopState !== 'finished' || certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
                           ? colors.background.hover
                           : colors.accent.blurple,
                         color: '#ffffff',
-                        opacity: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
-                        cursor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
+                        opacity: (workshopState !== 'finished' || certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
+                        cursor: (workshopState !== 'finished' || certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
                           ? 'not-allowed' 
                           : 'pointer',
                       }}
