@@ -560,21 +560,18 @@ export async function getActivePassTemplate(workshopId) {
  */
 export async function logDelivery(workshopId, participantId, type, email, name, status, additionalData = {}) {
   try {
-    // Check for existing sent log to prevent duplicates
-    if (status === 'sent') {
-      const { data: existing } = await supabase
-        .from('delivery_logs')
-        .select('id')
-        .eq('workshop_id', workshopId)
-        .eq('participant_id', participantId)
-        .eq('type', type)
-        .eq('status', 'sent')
-        .maybeSingle();
-      
-      if (existing) {
-        console.log(`⚠️ Delivery log already exists for ${type} to ${name}`);
-        return { success: true, data: existing, skipped: true };
-      }
+    // Check for existing log to prevent duplicates (any status)
+    const { data: existing } = await supabase
+      .from('delivery_logs')
+      .select('id, status')
+      .eq('workshop_id', workshopId)
+      .eq('participant_id', participantId)
+      .eq('type', type)
+      .maybeSingle();
+    
+    if (existing) {
+      console.log(`⚠️ Delivery log already exists for ${type} to ${name} (status: ${existing.status})`);
+      return { success: true, data: existing, skipped: true };
     }
     
     const logEntry = {

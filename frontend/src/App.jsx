@@ -180,6 +180,40 @@ held on ${new Date().toLocaleDateString("en-IN", {
             passSent: p.pass_sent
           }));
           setRegistrants(convertedParticipants);
+          
+          // Check for recently admitted participants who haven't received passes
+          const now = new Date();
+          const recentlyAdmitted = convertedParticipants.filter(p => {
+            if (p.status === 'admitted' && !p.passSent && p.admittedAt) {
+              const admitTime = new Date(p.admittedAt);
+              const minutesAgo = (now - admitTime) / 1000 / 60;
+              return minutesAgo < 10; // Admitted within last 10 minutes
+            }
+            return false;
+          });
+          
+          // Send passes to recently admitted participants
+          if (recentlyAdmitted.length > 0) {
+            console.log(`📧 Found ${recentlyAdmitted.length} recently admitted participant(s) without passes. Sending...`);
+            recentlyAdmitted.forEach((participant, index) => {
+              setTimeout(async () => {
+                setPassesSending(true);
+                const success = await generateAndSendPass(participant, workshop.id);
+                if (success) {
+                  setPassesSent(prev => prev + 1);
+                  setRegistrants(prev => prev.map(p => 
+                    p.id === participant.id ? { ...p, passSent: true } : p
+                  ));
+                  if (participant.id) {
+                    await workshopDB.updateParticipantDeliveryStatus(participant.id, 'pass', true);
+                  }
+                } else {
+                  setPassesFailed(prev => prev + 1);
+                }
+                setPassesSending(false);
+              }, 1000 + (index * 1000)); // Stagger sends by 1 second each
+            });
+          }
         }
         
         // Load certificate template
@@ -578,10 +612,13 @@ held on ${new Date().toLocaleDateString("en-IN", {
         const success = await generateAndSendPass(validatedPerson, currentWorkshopId);
         if (success) {
           setPassesSent(prev => prev + 1);
-          // Mark pass as sent
+          // Mark as sent only after successful send
           setRegistrants(prev => prev.map(p => 
             p.id === personId ? { ...p, passSent: true } : p
           ));
+          if (validatedPerson.id) {
+            await workshopDB.updateParticipantDeliveryStatus(validatedPerson.id, 'pass', true);
+          }
         } else {
           setPassesFailed(prev => prev + 1);
         }
@@ -657,21 +694,26 @@ held on ${new Date().toLocaleDateString("en-IN", {
     setRegistrants((prev) => [...prev, newPerson]);
     setCurrentCard(newPerson);
 
-    // ✅ Auto-send pass via email
-    setTimeout(async () => {
-      setPassesSending(true);
-      const success = await generateAndSendPass(newPerson, currentWorkshopId);
-      if (success) {
-        setPassesSent(prev => prev + 1);
-        // Mark pass as sent
-        setRegistrants(prev => prev.map(p => 
-          p.id === newPerson.id ? { ...p, passSent: true } : p
-        ));
-      } else {
-        setPassesFailed(prev => prev + 1);
-      }
-      setPassesSending(false);
-    }, 500);
+    // ✅ Auto-send pass via email (only if not already sent)
+    if (!newPerson.passSent) {
+      setTimeout(async () => {
+        setPassesSending(true);
+        const success = await generateAndSendPass(newPerson, currentWorkshopId);
+        if (success) {
+          setPassesSent(prev => prev + 1);
+          // Mark as sent only after successful send
+          setRegistrants(prev => prev.map(p => 
+            p.id === newPerson.id ? { ...p, passSent: true } : p
+          ));
+          if (newPerson.id) {
+            await workshopDB.updateParticipantDeliveryStatus(newPerson.id, 'pass', true);
+          }
+        } else {
+          setPassesFailed(prev => prev + 1);
+        }
+        setPassesSending(false);
+      }, 500);
+    }
   };
 
   // --- [NEW] Handle Marking Early Leave ---

@@ -1,5 +1,6 @@
 import { sendPassEmail } from './emailService';
-import { logDelivery, updateParticipantDeliveryStatus } from '../hooks/useWorkshopDB';
+import { logDelivery, updateDeliveryLog, updateParticipantDeliveryStatus } from '../hooks/useWorkshopDB';
+import { supabase } from '../supabase';
 
 // Standalone utility function to generate and send pass via email
 export const generateAndSendPass = async (participant, workshopId = null) => {
@@ -7,6 +8,39 @@ export const generateAndSendPass = async (participant, workshopId = null) => {
   console.log('   → Participant:', participant.name);
   console.log('   → Email:', participant.email);
   console.log('   → Workshop ID:', workshopId);
+  
+  // Check if pass already sent or is being sent (prevents duplicates on refresh during send)
+  if (workshopId && participant.id) {
+    const { data: existingLog } = await supabase
+      .from('delivery_logs')
+      .select('id, status')
+      .eq('workshop_id', workshopId)
+      .eq('participant_id', participant.id)
+      .eq('type', 'pass')
+      .in('status', ['pending', 'sent'])
+      .maybeSingle();
+    
+    if (existingLog) {
+      console.log(`⚠️ Pass already ${existingLog.status} for ${participant.name} - skipping`);
+      return true;
+    }
+  }
+  
+  // Create pending delivery log at START to prevent race conditions
+  let deliveryLogId = null;
+  if (workshopId && participant.id) {
+    console.log('💾 [DATABASE] Creating pending delivery log...');
+    const pendingLog = await logDelivery(
+      workshopId,
+      participant.id,
+      'pass',
+      participant.email,
+      participant.name,
+      'pending'
+    );
+    deliveryLogId = pendingLog?.data?.id;
+    console.log('✅ [DATABASE] Pending log created:', deliveryLogId);
+  }
   
   try {
     const admissionTime = participant.admittedAt 
@@ -140,20 +174,27 @@ export const generateAndSendPass = async (participant, workshopId = null) => {
 
     console.log('✅ [FRONTEND] Pass sent successfully!');
     
-    // Log delivery to database if workshopId is provided
+    // Update delivery log to sent
     if (workshopId && participant.id) {
-      console.log('💾 [DATABASE] Logging pass delivery...');
-      await logDelivery(
-        workshopId,
-        participant.id,
-        'pass',
-        participant.email,
-        participant.name,
-        'sent',
-        { messageId: emailResult.messageId }
-      );
+      if (deliveryLogId) {
+        // Update existing pending log to sent
+        console.log('💾 [DATABASE] Updating delivery log to sent...');
+        await updateDeliveryLog(deliveryLogId, 'sent', { messageId: emailResult.messageId });
+        console.log('✅ [DATABASE] Delivery log updated to sent');
+      } else {
+        // Fallback: create sent log (shouldn't happen, but safe)
+        console.log('💾 [DATABASE] Creating sent log (fallback)...');
+        await logDelivery(
+          workshopId,
+          participant.id,
+          'pass',
+          participant.email,
+          participant.name,
+          'sent',
+          { messageId: emailResult.messageId }
+        );
+      }
       await updateParticipantDeliveryStatus(participant.id, 'pass', true);
-      console.log('✅ [DATABASE] Pass delivery logged');
     }
     
     return true;
@@ -161,19 +202,26 @@ export const generateAndSendPass = async (participant, workshopId = null) => {
     console.error('❌ [FRONTEND] Pass generation/sending failed:', error.message);
     console.error('   → Full error:', error);
     
-    // Log failure to database if workshopId is provided
+    // Update delivery log to failed
     if (workshopId && participant.id) {
-      console.log('💾 [DATABASE] Logging pass failure...');
-      await logDelivery(
-        workshopId,
-        participant.id,
-        'pass',
-        participant.email,
-        participant.name,
-        'failed',
-        { errorMessage: error.message }
-      );
-      console.log('✅ [DATABASE] Pass failure logged');
+      if (deliveryLogId) {
+        // Update existing pending log to failed
+        console.log('💾 [DATABASE] Updating delivery log to failed...');
+        await updateDeliveryLog(deliveryLogId, 'failed', { errorMessage: error.message });
+        console.log('✅ [DATABASE] Delivery log updated to failed');
+      } else {
+        // Fallback: create failed log
+        console.log('💾 [DATABASE] Creating failed log (fallback)...');
+        await logDelivery(
+          workshopId,
+          participant.id,
+          'pass',
+          participant.email,
+          participant.name,
+          'failed',
+          { errorMessage: error.message }
+        );
+      }
     }
     
     return false;

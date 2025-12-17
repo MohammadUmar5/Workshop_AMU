@@ -1,4 +1,4 @@
-import { logDelivery, updateParticipantDeliveryStatus } from '../hooks/useWorkshopDB';
+import { logDelivery, updateDeliveryLog, updateParticipantDeliveryStatus } from '../hooks/useWorkshopDB';
 
 // Feature flag: Set to true to use legacy client-side generation (html-to-image)
 const USE_LEGACY = false;
@@ -6,7 +6,7 @@ const USE_LEGACY = false;
 // Import legacy generator if needed
 
 // Server-side generation using Sharp
-const generateCertificateServer = async (participant, certificateConfig) => {
+const generateCertificateServer = async (participant, certificateConfig, workshopId = null) => {
   console.log('🎓 [FRONTEND] Generating certificate via backend...');
   console.log('   → Participant:', participant.name);
   console.log('   → Email:', participant.email);
@@ -54,8 +54,24 @@ const generateCertificateServer = async (participant, certificateConfig) => {
 
 // Main export: Server-side certificate generation
 export const generateAndSendCertificate = async (participant, certificateConfig, workshopId = null) => {
+  // Create pending delivery log at START to prevent race conditions
+  let deliveryLogId = null;
+  if (workshopId && participant.id) {
+    console.log('💾 [DATABASE] Creating pending certificate delivery log...');
+    const pendingLog = await logDelivery(
+      workshopId,
+      participant.id,
+      'certificate',
+      participant.email,
+      participant.name,
+      'pending'
+    );
+    deliveryLogId = pendingLog?.data?.id;
+    console.log('✅ [DATABASE] Pending certificate log created:', deliveryLogId);
+  }
+  
   try {
-    const result = await generateCertificateServer(participant, certificateConfig);
+    const result = await generateCertificateServer(participant, certificateConfig, workshopId);
     
     console.log('📊 [FRONTEND] Certificate result:', result);
     
@@ -65,39 +81,53 @@ export const generateAndSendCertificate = async (participant, certificateConfig,
       throw new Error(result.error || 'Certificate generation failed');
     }
     
-    // Log successful delivery to database if workshopId is provided
+    // Update delivery log to sent
     if (workshopId && participant.id) {
-      console.log('💾 [DATABASE] Logging certificate delivery...');
-      await logDelivery(
-        workshopId,
-        participant.id,
-        'certificate',
-        participant.email,
-        participant.name,
-        'sent',
-        { messageId: result.messageId }
-      );
+      if (deliveryLogId) {
+        // Update existing pending log to sent
+        console.log('💾 [DATABASE] Updating certificate delivery log to sent...');
+        await updateDeliveryLog(deliveryLogId, 'sent', { messageId: result.messageId });
+        console.log('✅ [DATABASE] Certificate delivery log updated to sent');
+      } else {
+        // Fallback: create sent log (shouldn't happen, but safe)
+        console.log('💾 [DATABASE] Creating sent certificate log (fallback)...');
+        await logDelivery(
+          workshopId,
+          participant.id,
+          'certificate',
+          participant.email,
+          participant.name,
+          'sent',
+          { messageId: result.messageId }
+        );
+      }
       await updateParticipantDeliveryStatus(participant.id, 'certificate', true);
-      console.log('✅ [DATABASE] Certificate delivery logged');
     }
     
     return result;
   } catch (error) {
     console.error('❌ [FRONTEND] Certificate sending failed:', error.message);
     
-    // Log failure to database if workshopId is provided
+    // Update delivery log to failed
     if (workshopId && participant.id) {
-      console.log('💾 [DATABASE] Logging certificate failure...');
-      await logDelivery(
-        workshopId,
-        participant.id,
-        'certificate',
-        participant.email,
-        participant.name,
-        'failed',
-        { errorMessage: error.message }
-      );
-      console.log('✅ [DATABASE] Certificate failure logged');
+      if (deliveryLogId) {
+        // Update existing pending log to failed
+        console.log('💾 [DATABASE] Updating certificate delivery log to failed...');
+        await updateDeliveryLog(deliveryLogId, 'failed', { errorMessage: error.message });
+        console.log('✅ [DATABASE] Certificate delivery log updated to failed');
+      } else {
+        // Fallback: create failed log
+        console.log('💾 [DATABASE] Creating failed certificate log (fallback)...');
+        await logDelivery(
+          workshopId,
+          participant.id,
+          'certificate',
+          participant.email,
+          participant.name,
+          'failed',
+          { errorMessage: error.message }
+        );
+      }
     }
     
     throw error;
