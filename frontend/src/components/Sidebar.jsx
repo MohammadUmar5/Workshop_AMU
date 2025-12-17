@@ -72,7 +72,7 @@ export const Sidebar = ({
 
         {/* Certificates - always visible */}
         <NavIcon
-          icon={<Award className="w-6 h-6" />}
+          icon={<Award className="w-6 h-6" style={{ color: '#000000' }} />}
           isActive={currentView === "certificates"}
           onClick={() => setCurrentView("certificates")}
           // label="Certificates"
@@ -158,12 +158,13 @@ const NavIcon = ({ icon, isActive, onClick, iconColor }) => {
       {/* Hover and Active indicator bar */}
       {(isHovered || isActive) && (
         <div
-          className="fixed w-1 h-8 rounded-r-full transition-all duration-150"
+          className="fixed w-1 h-8 rounded-r-full transition-all duration-200"
           style={{
             backgroundColor: colors.text.primary,
             zIndex: 10,
             left: 0,
             top: `${barPosition}px`,
+            boxShadow: "none",
           }}
         />
       )}
@@ -173,15 +174,21 @@ const NavIcon = ({ icon, isActive, onClick, iconColor }) => {
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="w-12 h-12 flex items-center justify-center transition-all duration-150"
+        className="w-12 h-12 flex items-center justify-center transition-all duration-200"
         style={{
           backgroundColor: "white",
           borderRadius: "16px",
           stroke: iconColor || colors.text.primary,
+          boxShadow: isHovered
+            ? "0 4px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1)"
+            : "0 2px 4px rgba(0,0,0,0.1)",
         }}
       >
         <div
-          style={{ color: iconColor || colors.text.primary, display: "flex" }}
+          style={{ 
+            color: iconColor || colors.text.primary, 
+            display: "flex",
+          }}
         >
           {icon}
         </div>
@@ -208,12 +215,13 @@ const HomeIcon = ({ isActive, onClick }) => {
       {/* Hover and Active indicator bar */}
       {(isHovered || isActive) && (
         <div
-          className="fixed w-1 h-8 rounded-r-full transition-all duration-150"
+          className="fixed w-1 h-8 rounded-r-full transition-all duration-200"
           style={{
             backgroundColor: colors.text.primary,
             zIndex: 10,
             left: 0,
             top: `${barPosition}px`,
+            boxShadow: "none",
           }}
         />
       )}
@@ -223,15 +231,23 @@ const HomeIcon = ({ isActive, onClick }) => {
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="w-12 h-12 flex items-center justify-center transition-all duration-150"
+        className="w-12 h-12 flex items-center justify-center transition-all duration-200 overflow-hidden"
         style={{
           backgroundColor: "white",
           color: colors.text.primary,
           borderRadius: "16px",
+          boxShadow: isHovered
+            ? "0 4px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1)"
+            : "0 2px 4px rgba(0,0,0,0.1)",
         }}
         title="Dashboard"
       >
-        <img src={AstroImage} alt="Dashboard" className="w-14 h-13" />
+        <img 
+          src={AstroImage} 
+          alt="Dashboard" 
+          className="w-14 h-13"
+          style={{ opacity: 1 }}
+        />
       </button>
     </div>
   );

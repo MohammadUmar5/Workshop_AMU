@@ -78,6 +78,12 @@ export const colors = {
       active: '#c27e10',      // Active state
       muted: '#faa61a33',     // 20% opacity
     },
+    purple: {
+      DEFAULT: '#593695',     // Purple accent for variety
+      hover: '#4a2d7a',       // Hover state
+      active: '#3d2563',      // Active state
+      muted: '#59369533',     // 20% opacity
+    },
   },
 
   // ============================================
@@ -186,6 +192,18 @@ export const colors = {
     blurple: 'linear-gradient(90deg, #5865f2 0%, #4752c4 100%)',
     green: 'linear-gradient(90deg, #3ba55d 0%, #2d7d46 100%)',
     premium: 'linear-gradient(90deg, #593695 0%, #5865f2 50%, #04befe 100%)',
+    purple: 'linear-gradient(135deg, #593695 0%, #7c3aed 100%)',
+  },
+
+  // ============================================
+  // GLOW EFFECTS (for active elements)
+  // ============================================
+  glow: {
+    blurple: '0 0 8px rgba(88, 101, 242, 0.6), 0 0 16px rgba(88, 101, 242, 0.3)',
+    green: '0 0 8px rgba(59, 165, 93, 0.6), 0 0 16px rgba(59, 165, 93, 0.3)',
+    red: '0 0 8px rgba(237, 66, 69, 0.6), 0 0 16px rgba(237, 66, 69, 0.3)',
+    yellow: '0 0 8px rgba(250, 166, 26, 0.6), 0 0 16px rgba(250, 166, 26, 0.3)',
+    purple: '0 0 8px rgba(89, 54, 149, 0.6), 0 0 16px rgba(89, 54, 149, 0.3)',
   },
 
   // ============================================

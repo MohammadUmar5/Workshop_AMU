@@ -63,7 +63,7 @@ const EditableTimeSegment = ({ value, onChange, max, label }) => {
         onKeyDown={handleKeyDown}
         style={{
           backgroundColor: 'transparent',
-          borderBottom: `2px solid ${colors.accent.blurple.DEFAULT}`,
+          borderBottom: `1px solid ${colors.border.focus}`,
           color: colors.text.primary,
         }}
         className="text-7xl font-mono font-bold w-32 text-center outline-none"
@@ -117,92 +117,113 @@ export const CompactTimer = ({
 
   if (workshopState === "idle") {
     return (
-      <div className="flex flex-col items-center gap-6 w-full">
-        <div className="text-7xl font-mono font-bold text-white tracking-wider flex items-center gap-2">
-          <EditableTimeSegment
-            value={durationHours}
-            onChange={setDurationHours}
-            label="hours"
-          />
-          <span>:</span>
-          <EditableTimeSegment
-            value={durationMinutes}
-            onChange={setDurationMinutes}
-            max={59}
-            label="minutes"
-          />
-          <span>:</span>
-          <span className="opacity-50">00</span>
+      <div className="flex flex-col items-start gap-4 w-full">
+        <div 
+          className="rounded-lg p-4"
+          style={{
+            backgroundColor: colors.background.tertiary,
+            border: `1px solid ${colors.border.default}`,
+          }}
+        >
+          <div className="text-4xl font-mono font-semibold flex items-center gap-2" style={{ color: colors.text.primary }}>
+            <EditableTimeSegment
+              value={durationHours}
+              onChange={setDurationHours}
+              label="hours"
+            />
+            <span>:</span>
+            <EditableTimeSegment
+              value={durationMinutes}
+              onChange={setDurationMinutes}
+              max={59}
+              label="minutes"
+            />
+            <span>:</span>
+            <span style={{ color: colors.text.muted }}>00</span>
+          </div>
         </div>
-        <div className="flex items-center gap-3 justify-center">
+        <div className="flex items-center gap-3">
           <button
             onClick={onStart}
             disabled={capacityReached}
-            className="relative inline-flex items-center px-6 py-2.5 bg-white text-gray-900 font-semibold rounded-full transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+            className="inline-flex items-center px-4 py-2 font-semibold rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              boxShadow: '0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(88, 101, 242, 0.3)',
+              backgroundColor: capacityReached ? colors.button.secondary.bg : colors.button.primary.bg,
+              color: colors.button.primary.text,
+              boxShadow: capacityReached ? 'none' : colors.glow.blurple,
+            }}
+            onMouseEnter={(e) => {
+              if (!capacityReached) {
+                e.currentTarget.style.backgroundColor = colors.button.primary.bgHover;
+                e.currentTarget.style.boxShadow = `0 0 12px ${colors.accent.blurple.DEFAULT}66`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!capacityReached) {
+                e.currentTarget.style.backgroundColor = colors.button.primary.bg;
+                e.currentTarget.style.boxShadow = colors.glow.blurple;
+              }
             }}
           >
-            <span className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500" 
-              style={{
-                animation: 'rotate-gradient 3s linear infinite',
-                backgroundSize: '200% 200%',
-              }}
-            />
-            <span className="absolute inset-[2px] rounded-full bg-white" />
-            <Play className="h-4 w-4 mr-2 relative z-10 fill-current" />
-            <span className="relative z-10">Start Workshop</span>
+            <Play className="h-4 w-4 mr-2" />
+            Start Workshop
           </button>
         </div>
-        <style>{`
-          @keyframes rotate-gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-        `}</style>
       </div>
     );
   }
-
+ 
   if (workshopState === "active") {
     return (
-      <div className="flex flex-col items-center gap-6 w-full">
-        <div className="text-7xl font-mono font-bold text-white tracking-wider">
-          {formatTime(timeLeft)}
+      <div className="flex flex-col items-start gap-4 w-full">
+        <div 
+          className="rounded-lg p-4"
+          style={{
+            backgroundColor: colors.background.tertiary,
+            border: `1px solid ${colors.border.default}`,
+          }}
+        >
+          <div className="text-4xl font-mono font-semibold" style={{ color: colors.text.primary }}>
+            {formatTime(timeLeft)}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={onPause}
-            className="inline-flex items-center px-6 py-3 text-white font-semibold rounded-lg transition-all hover:scale-105"
+            className="inline-flex items-center px-4 py-2 font-semibold rounded transition-all"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-              backdropFilter: 'blur(10px)',
+              backgroundColor: colors.button.secondary.bg,
+              color: colors.button.secondary.text,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)';
+              e.currentTarget.style.backgroundColor = colors.button.secondary.bgHover;
+              e.currentTarget.style.boxShadow = `0 0 8px ${colors.button.secondary.bgHover}66`;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+              e.currentTarget.style.backgroundColor = colors.button.secondary.bg;
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            <Pause className="h-5 w-5 mr-2" />
+            <Pause className="h-4 w-4 mr-2" />
             Pause
           </button>
           <button
             onClick={onReset}
-            className="inline-flex items-center px-6 py-3 text-white font-semibold rounded-lg transition-all hover:scale-105"
+            className="inline-flex items-center px-4 py-2 font-semibold rounded transition-all"
             style={{
-              backgroundColor: 'rgba(237, 66, 69, 0.8)',
+              backgroundColor: colors.button.danger.bg,
+              color: colors.button.danger.text,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(237, 66, 69, 1)';
+              e.currentTarget.style.backgroundColor = colors.button.danger.bgHover;
+              e.currentTarget.style.boxShadow = colors.glow.red;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(237, 66, 69, 0.8)';
+              e.currentTarget.style.backgroundColor = colors.button.danger.bg;
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            <RotateCcw className="h-5 w-5 mr-2" />
+            <RotateCcw className="h-4 w-4 mr-2" />
             Reset
           </button>
         </div>
@@ -212,26 +233,34 @@ export const CompactTimer = ({
 
   if (workshopState === "finished") {
     return (
-      <div className="flex flex-col items-center gap-6 w-full">
-        <div className="text-7xl font-mono font-bold text-white tracking-wider">
-          {formatTime(timeLeft)}
+      <div className="flex flex-col items-start gap-4 w-full">
+        <div 
+          className="rounded-lg p-4"
+          style={{
+            backgroundColor: colors.background.tertiary,
+            border: `1px solid ${colors.border.default}`,
+          }}
+        >
+          <div className="text-4xl font-mono font-semibold" style={{ color: colors.text.primary }}>
+            {formatTime(timeLeft)}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={onReset}
-            className="inline-flex items-center px-6 py-3 text-white font-semibold rounded-lg transition-all hover:scale-105"
+            className="inline-flex items-center px-4 py-2 font-semibold rounded transition-all"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-              backdropFilter: 'blur(10px)',
+              backgroundColor: colors.button.secondary.bg,
+              color: colors.button.secondary.text,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)';
+              e.currentTarget.style.backgroundColor = colors.button.secondary.bgHover;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+              e.currentTarget.style.backgroundColor = colors.button.secondary.bg;
             }}
           >
-            <RotateCcw className="h-5 w-5 mr-2" />
+            <RotateCcw className="h-4 w-4 mr-2" />
             Reset Workshop
           </button>
         </div>
@@ -728,59 +757,105 @@ export const Dashboard = ({
 
   return (
     <div 
-      className="-m-6 space-y-4"
+      className="-m-6 space-y-4 relative"
       style={{
-        background: 'linear-gradient(to bottom, #c74ddb 0%, #b84dcf 10%, #a855f7 20%, rgba(168, 85, 247, 0.7) 23%, rgba(147, 51, 234, 0.5) 27%, rgba(139, 92, 246, 0.2) 32%, transparent 35%)',
-        backdropFilter: 'blur(10px)',
+        backgroundColor: colors.background.secondary,
       }}
     >
-      {/* Top blur bar - aligns with MiddlePanel header */}
+      {/* Top navbar - Discord style */}
       <div 
-        className="h-[45.4px] sticky top-0 z-20 flex items-center justify-end px-6"
+        className="h-[44.5px] sticky top-0 z-30 flex items-center justify-between px-6"
         style={{
-          backdropFilter: 'blur(10px)',
+          backgroundColor: 'transparent',
+          borderBottom: `1px solid ${colors.border.default}`,
+          marginLeft: '-24px',
+          marginRight: '-24px',
+          marginTop: '-24px',
         }}
       >
+        {/* Left: Workshop Title/Breadcrumb */}
+        <div className="flex items-center gap-2 ml-4">
+          <span className="text-sm font-semibold" style={{ color: colors.text.primary }}>Dashboard</span>
+          <span style={{ color: colors.text.muted }}>/</span>
+          <span className="text-sm font-medium" style={{ color: colors.text.secondary }}>Workshop</span>
+        </div>
+
+        {/* Center: Workshop Status Indicator */}
+        <div className="flex items-center gap-2">
+          <div 
+            className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all"
+            style={{
+              backgroundColor: workshopState === 'active' 
+                ? colors.accent.green.muted
+                : workshopState === 'finished'
+                ? colors.accent.red.muted
+                : colors.accent.blurple.muted,
+              color: workshopState === 'active'
+                ? colors.accent.green.DEFAULT
+                : workshopState === 'finished'
+                ? colors.accent.red.DEFAULT
+                : colors.accent.blurple.DEFAULT,
+              border: `1px solid ${
+                workshopState === 'active'
+                  ? colors.accent.green.DEFAULT + '4d'
+                  : workshopState === 'finished'
+                  ? colors.accent.red.DEFAULT + '4d'
+                  : colors.accent.blurple.DEFAULT + '4d'
+              }`,
+            }}
+          >
+            <div 
+              className="w-2 h-2 rounded-full transition-all"
+              style={{
+                backgroundColor: workshopState === 'active'
+                  ? colors.accent.green.DEFAULT
+                  : workshopState === 'finished'
+                  ? colors.accent.red.DEFAULT
+                  : colors.accent.blurple.DEFAULT,
+                boxShadow: workshopState === 'active'
+                  ? colors.glow.green
+                  : workshopState === 'finished'
+                  ? colors.glow.red
+                  : colors.glow.blurple,
+              }}
+            />
+            {workshopState === 'active' ? 'Active' : workshopState === 'finished' ? 'Finished' : 'Idle'}
+          </div>
+        </div>
+
+        {/* Right: Import CSV Button */}
         <button
           onClick={onImportCSV}
-          className="px-4 py-2 mt-2.5 text-sm font-semibold text-white rounded-lg transition-all flex items-center gap-2 hover:scale-105"
+          className="w-8 h-8 mr-4 rounded-lg transition-all flex items-center justify-center"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: colors.button.secondary.bg,
+            color: colors.button.secondary.text,
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+            e.currentTarget.style.backgroundColor = colors.button.secondary.bgHover;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            e.currentTarget.style.backgroundColor = colors.button.secondary.bg;
           }}
         >
           <Upload className="h-4 w-4" />
-          Import CSV
         </button>
       </div>
       
-      <div className="px-6"
+      <div className="px-6 overflow-x-hidden"
+        style={{ paddingTop: '21.4px' }}
     >
       {/* Hero Section with Workshop Info and Timer */}
       <div 
-        className="rounded-xl p-8 relative overflow-hidden"
+        className="p-4"
       >
-        {/* Decorative gradient overlay */}
-        <div 
-          className="absolute inset-0 opacity-10"
-          style={{
-            background: 'radial-gradient(circle at top right, rgba(255,255,255,0.3), transparent 50%)',
-          }}
-        />
-        
-        <div className="relative z-10 text-center">
+        <div className="text-left">
           {/* Workshop Title */}
-          <div className="mb-8">
-            <h1 className="text-6xl font-black text-white mb-4 uppercase italic tracking-wide" style={{ fontFamily: '"BBH Hegarty", sans-serif',fontWeight: '400' }}>
+          <div className="mb-6">
+            <h1 className="text-3xl font-semibold mb-2" style={{ color: colors.text.primary }}>
               Mini Workshop on Physics
             </h1>
-            <p className="text-white/80 text-xl">
+            <p className="text-sm" style={{ color: colors.text.secondary }}>
               Plan, prioritize, and accomplish your workshop goals
             </p>
           </div>
@@ -804,11 +879,11 @@ export const Dashboard = ({
       </div>
 
       {/* Main Dashboard Container */}
-      <div className="space-y-6">
+      <div className="space-y-4">
 
         {/* Statistics Bar - Single unified box */}
         <div 
-          className="rounded-xl p-6"
+          className="rounded-lg p-4"
           style={{
             backgroundColor: colors.background.secondary,
             border: `1px solid ${colors.border.default}`,
@@ -819,18 +894,26 @@ export const Dashboard = ({
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 mb-2">
                 <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: '#5865f220' }}
+                  className="p-2 rounded transition-all"
+                  style={{ 
+                    backgroundColor: colors.accent.blurple.muted,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.blurple.DEFAULT + '33';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.blurple.muted;
+                  }}
                 >
-                  <Users className="h-5 w-5" style={{ color: '#5865f2' }} />
+                  <Users className="h-4 w-4" style={{ color: colors.accent.blurple.DEFAULT }} />
                 </div>
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.text.secondary }}>
+                <p className="text-xs font-medium" style={{ color: colors.text.muted }}>
                   Capacity
                 </p>
               </div>
-              <p className="text-3xl font-bold text-white font-mono">
+              <p className="text-2xl font-semibold" style={{ color: colors.text.primary }}>
                 {admittedPeople.length}
-                <span className="text-lg ml-1" style={{ color: colors.text.muted }}>/ {totalCapacity}</span>
+                <span className="text-base ml-1" style={{ color: colors.text.muted }}>/ {totalCapacity}</span>
               </p>
             </div>
 
@@ -838,16 +921,24 @@ export const Dashboard = ({
             <div className="flex flex-col items-start border-l pl-6" style={{ borderColor: colors.border.default }}>
               <div className="flex items-center gap-2 mb-2">
                 <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: `${colors.status.online}20` }}
+                  className="p-2 rounded transition-all"
+                  style={{ 
+                    backgroundColor: colors.accent.green.muted,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.green.DEFAULT + '33';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.green.muted;
+                  }}
                 >
-                  <UserPlus className="h-5 w-5" style={{ color: colors.status.online }} />
+                  <UserPlus className="h-4 w-4" style={{ color: colors.accent.green.DEFAULT }} />
                 </div>
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.text.secondary }}>
+                <p className="text-xs font-medium" style={{ color: colors.text.muted }}>
                   On-Spot
                 </p>
               </div>
-              <p className="text-3xl font-bold text-white font-mono">
+              <p className="text-2xl font-semibold" style={{ color: colors.text.primary }}>
                 {onSpotCount}
               </p>
             </div>
@@ -856,16 +947,24 @@ export const Dashboard = ({
             <div className="flex flex-col items-start border-l pl-6" style={{ borderColor: colors.border.default }}>
               <div className="flex items-center gap-2 mb-2">
                 <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: `${colors.status.dnd}20` }}
+                  className="p-2 rounded transition-all"
+                  style={{ 
+                    backgroundColor: colors.accent.red.muted,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.red.DEFAULT + '33';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.red.muted;
+                  }}
                 >
-                  <UserMinus className="h-5 w-5" style={{ color: colors.status.dnd }} />
+                  <UserMinus className="h-4 w-4" style={{ color: colors.accent.red.DEFAULT }} />
                 </div>
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.text.secondary }}>
+                <p className="text-xs font-medium" style={{ color: colors.text.muted }}>
                   Absent
                 </p>
               </div>
-              <p className="text-3xl font-bold text-white font-mono">
+              <p className="text-2xl font-semibold" style={{ color: colors.text.primary }}>
                 {absentPeople.length}
               </p>
             </div>
@@ -874,16 +973,24 @@ export const Dashboard = ({
             <div className="flex flex-col items-start border-l pl-6" style={{ borderColor: colors.border.default }}>
               <div className="flex items-center gap-2 mb-2">
                 <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: `${colors.status.idle}20` }}
+                  className="p-2 rounded transition-all"
+                  style={{ 
+                    backgroundColor: colors.accent.yellow.muted,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.yellow.DEFAULT + '33';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.accent.yellow.muted;
+                  }}
                 >
-                  <LogOut className="h-5 w-5" style={{ color: colors.status.idle }} />
+                  <LogOut className="h-4 w-4" style={{ color: colors.accent.yellow.DEFAULT }} />
                 </div>
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: colors.text.secondary }}>
+                <p className="text-xs font-medium" style={{ color: colors.text.muted }}>
                   Left Early
                 </p>
               </div>
-              <p className="text-3xl font-bold text-white font-mono">
+              <p className="text-2xl font-semibold" style={{ color: colors.text.primary }}>
                 {earlyLeavers.length}
               </p>
             </div>
@@ -892,27 +999,27 @@ export const Dashboard = ({
 
         {/* Recent Activity - Participant Avatar Grid */}
         <div 
-          className="p-6 rounded-xl"
+          className="rounded-lg p-4"
           style={{
             backgroundColor: colors.background.secondary,
             border: `1px solid ${colors.border.default}`,
           }}
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Activity className="h-5 w-5" style={{ color: colors.accent.blurple.DEFAULT }} />
+              <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: colors.text.primary }}>
+                <Activity className="h-4 w-4" style={{ color: colors.text.secondary }} />
                 Recent Check-ins
               </h2>
-              <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
+              <p className="text-xs mt-1" style={{ color: colors.text.muted }}>
                 Latest participants who joined the workshop
               </p>
             </div>
             <span 
-              className="px-3 py-1 rounded-full text-xs font-bold"
+              className="px-2 py-1 rounded text-xs font-medium"
               style={{
-                backgroundColor: `${colors.accent.blurple.DEFAULT}20`,
-                color: colors.accent.blurple.DEFAULT,
+                backgroundColor: colors.background.tertiary,
+                color: colors.text.muted,
               }}
             >
               {admittedPeople.length} total
@@ -922,10 +1029,13 @@ export const Dashboard = ({
           {admittedPeople.length === 0 ? (
             <div className="text-center py-12">
               <div 
-                className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
-                style={{ backgroundColor: colors.background.tertiary }}
+                className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 transition-all"
+                style={{ 
+                  background: colors.gradient.blurple,
+                  boxShadow: colors.glow.blurple,
+                }}
               >
-                <Users className="h-8 w-8" style={{ color: colors.text.disabled }} />
+                <Users className="h-8 w-8" style={{ color: '#ffffff' }} />
               </div>
               <p className="font-medium" style={{ color: colors.text.secondary }}>
                 No participants checked in yet
@@ -936,23 +1046,30 @@ export const Dashboard = ({
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {admittedPeople.slice(0, 12).map((person, index) => {
-                const colors_list = [
-                  '#5865f2', '#3ba55d', '#faa61a', '#ed4245', 
-                  '#9b59b6', '#1abc9c', '#e91e63', '#00bcd4'
-                ];
-                const bgColor = colors_list[index % colors_list.length];
-                
+              {admittedPeople.slice(0, 12).map((person) => {
+                const borderColor = person.onSpot 
+                  ? colors.accent.yellow.DEFAULT 
+                  : colors.accent.green.DEFAULT;
                 return (
                   <div
                     key={person.id}
                     className="flex flex-col items-center group cursor-pointer"
                   >
                     <div
-                      className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-2 transform transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg"
+                      className="w-12 h-12 rounded-full flex items-center justify-center font-semibold text-sm mb-2 transition-all duration-200"
                       style={{
-                        backgroundColor: bgColor,
-                        boxShadow: `0 4px 12px ${bgColor}40`,
+                        backgroundColor: colors.background.tertiary,
+                        border: `2px solid ${borderColor}`,
+                        color: colors.text.secondary,
+                        boxShadow: `0 0 8px ${borderColor}33`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = `0 0 12px ${borderColor}66`;
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = `0 0 8px ${borderColor}33`;
+                        e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
                       {person.name.charAt(0).toUpperCase()}
@@ -964,9 +1081,21 @@ export const Dashboard = ({
                     >
                       {person.name.split(' ')[0]}
                     </p>
+                    {person.onSpot && (
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded mt-0.5 inline-block font-medium"
+                        style={{
+                          backgroundColor: colors.accent.yellow.muted,
+                          color: colors.accent.yellow.DEFAULT,
+                          border: `1px solid ${colors.accent.yellow.DEFAULT}33`,
+                        }}
+                      >
+                        On-Spot
+                      </span>
+                    )}
                     <p 
                       className="text-xs text-center"
-                      style={{ color: colors.text.disabled }}
+                      style={{ color: colors.text.muted }}
                     >
                       {formatTimeOnly(person.admittedAt)}
                     </p>
@@ -976,10 +1105,11 @@ export const Dashboard = ({
               {admittedPeople.length > 12 && (
                 <div className="flex flex-col items-center justify-center">
                   <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-sm mb-2"
+                    className="w-12 h-12 rounded-full flex items-center justify-center font-semibold text-sm mb-2"
                     style={{
                       backgroundColor: colors.background.tertiary,
-                      border: `2px dashed ${colors.border.default}`,
+                      border: `1px solid ${colors.border.default}`,
+                      color: colors.text.muted,
                     }}
                   >
                     +{admittedPeople.length - 12}
@@ -997,26 +1127,26 @@ export const Dashboard = ({
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
           {/* Sending Progress Card */}
           <div 
-            className="p-6 rounded-xl"
+            className="p-4 rounded-lg"
             style={{
               backgroundColor: colors.background.secondary,
               border: `1px solid ${colors.border.default}`,
             }}
           >
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4">
               <div 
-                className="p-3 rounded-lg"
+                className="p-2 rounded"
                 style={{
-                  backgroundColor: `${colors.accent.blurple.DEFAULT}20`,
+                  backgroundColor: colors.background.tertiary,
                 }}
               >
-                <Send className="h-5 w-5" style={{ color: colors.accent.blurple.DEFAULT }} />
+                <Send className="h-4 w-4" style={{ color: colors.text.secondary }} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-lg font-semibold" style={{ color: colors.text.primary }}>
                   Sending Progress
                 </h2>
-                <p className="text-sm" style={{ color: colors.text.muted }}>
+                <p className="text-xs" style={{ color: colors.text.muted }}>
                   Passes and Certificates
                 </p>
               </div>
@@ -1025,28 +1155,28 @@ export const Dashboard = ({
             <div className="space-y-4">
               {/* Passes Progress */}
               <div 
-                className="p-4 rounded-lg"
+                className="p-3 rounded"
                 style={{
-                  backgroundColor: `${colors.status.online}15`,
-                  border: `1px solid ${colors.status.online}40`,
+                  backgroundColor: colors.background.tertiary,
+                  border: `1px solid ${colors.border.default}`,
                 }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold" style={{ color: colors.status.online }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium" style={{ color: colors.text.secondary }}>
                     Passes Sent
                   </span>
-                  <span className="text-lg font-bold text-white font-mono">
+                  <span className="text-base font-semibold" style={{ color: colors.text.primary }}>
                     {passesSent} / {admittedPeople.length}
                   </span>
                 </div>
                 <div 
-                  className="w-full rounded-full h-3 overflow-hidden"
-                  style={{ backgroundColor: colors.background.tertiary }}
+                  className="w-full rounded-full h-2 overflow-hidden"
+                  style={{ backgroundColor: colors.background.quaternary }}
                 >
                   <div
                     className="h-full transition-all duration-500 rounded-full"
                     style={{
-                      background: `linear-gradient(90deg, ${colors.status.online} 0%, #2d7d46 100%)`,
+                      backgroundColor: colors.status.online,
                       width: `${
                         admittedPeople.length > 0
                           ? Math.min(
@@ -1078,28 +1208,28 @@ export const Dashboard = ({
 
               {/* Certificates Progress */}
               <div 
-                className="p-4 rounded-lg"
+                className="p-3 rounded"
                 style={{
-                  backgroundColor: `${colors.accent.blurple.DEFAULT}15`,
-                  border: `1px solid ${colors.accent.blurple.DEFAULT}40`,
+                  backgroundColor: colors.background.tertiary,
+                  border: `1px solid ${colors.border.default}`,
                 }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold" style={{ color: colors.accent.blurple.DEFAULT }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium" style={{ color: colors.text.secondary }}>
                     Certificates Sent
                   </span>
-                  <span className="text-lg font-bold text-white font-mono">
+                  <span className="text-base font-semibold" style={{ color: colors.text.primary }}>
                     {certificatesSent} / {eligibleForCertificate}
                   </span>
                 </div>
                 <div 
-                  className="w-full rounded-full h-3 overflow-hidden"
-                  style={{ backgroundColor: colors.background.tertiary }}
+                  className="w-full rounded-full h-2 overflow-hidden"
+                  style={{ backgroundColor: colors.background.quaternary }}
                 >
                   <div
                     className="h-full transition-all duration-500 rounded-full"
                     style={{
-                      background: `linear-gradient(90deg, ${colors.accent.blurple.DEFAULT} 0%, #4752c4 100%)`,
+                      backgroundColor: colors.accent.blurple.DEFAULT,
                       width: `${
                         eligibleForCertificate > 0
                           ? Math.min(
@@ -1133,49 +1263,51 @@ export const Dashboard = ({
 
           {/* Quick Actions Panel */}
           <div 
-            className="p-6 rounded-xl"
+            className="p-4 rounded-lg"
             style={{
               backgroundColor: colors.background.secondary,
               border: `1px solid ${colors.border.default}`,
             }}
           >
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4">
               <div 
-                className="p-3 rounded-lg"
+                className="p-2 rounded"
                 style={{
-                  backgroundColor: `${colors.accent.blurple.DEFAULT}20`,
+                  backgroundColor: colors.background.tertiary,
                 }}
               >
-                <FileDown className="h-5 w-5" style={{ color: colors.accent.blurple.DEFAULT }} />
+                <FileDown className="h-4 w-4" style={{ color: colors.text.secondary }} />
               </div>
-              <h2 className="text-xl font-bold text-white">Quick Actions</h2>
+              <h2 className="text-lg font-semibold" style={{ color: colors.text.primary }}>Quick Actions</h2>
             </div>
 
             <div className="space-y-3">
               <button
                 onClick={onDownloadAdmitted}
                 disabled={admittedPeople.length === 0}
-                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg transition-all hover:scale-102 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="w-full flex items-center justify-between px-3 py-2 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: colors.background.tertiary,
-                  border: `1px solid ${colors.border.default}`,
+                  backgroundColor: 'transparent',
                 }}
                 onMouseEnter={(e) => {
                   if (admittedPeople.length > 0) {
-                    e.currentTarget.style.borderColor = colors.status.online;
+                    e.currentTarget.style.backgroundColor = colors.background.hover;
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = colors.border.default;
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <span className="text-sm font-semibold text-white flex items-center gap-2">
+                <span className="text-sm font-medium flex items-center gap-2" style={{ color: colors.text.secondary }}>
                   <FileDown className="h-4 w-4" />
                   Download Admitted
                 </span>
                 <span 
-                  className="px-2.5 py-1 rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: colors.status.online }}
+                  className="px-2 py-0.5 rounded text-xs font-medium"
+                  style={{ 
+                    backgroundColor: colors.background.tertiary,
+                    color: colors.text.muted
+                  }}
                 >
                   {admittedPeople.length}
                 </span>
@@ -1184,27 +1316,29 @@ export const Dashboard = ({
               <button
                 onClick={onDownloadAbsentees}
                 disabled={absentPeople.length === 0}
-                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg transition-all hover:scale-102 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="w-full flex items-center justify-between px-3 py-2 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: colors.background.tertiary,
-                  border: `1px solid ${colors.border.default}`,
+                  backgroundColor: 'transparent',
                 }}
                 onMouseEnter={(e) => {
                   if (absentPeople.length > 0) {
-                    e.currentTarget.style.borderColor = colors.status.dnd;
+                    e.currentTarget.style.backgroundColor = colors.background.hover;
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = colors.border.default;
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <span className="text-sm font-semibold text-white flex items-center gap-2">
+                <span className="text-sm font-medium flex items-center gap-2" style={{ color: colors.text.secondary }}>
                   <FileDown className="h-4 w-4" />
                   Download Absent
                 </span>
                 <span 
-                  className="px-2.5 py-1 rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: colors.status.dnd }}
+                  className="px-2 py-0.5 rounded text-xs font-medium"
+                  style={{ 
+                    backgroundColor: colors.background.tertiary,
+                    color: colors.text.muted
+                  }}
                 >
                   {absentPeople.length}
                 </span>
@@ -1213,27 +1347,29 @@ export const Dashboard = ({
               <button
                 onClick={onDownloadEarlyLeavers}
                 disabled={earlyLeavers.length === 0}
-                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg transition-all hover:scale-102 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="w-full flex items-center justify-between px-3 py-2 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: colors.background.tertiary,
-                  border: `1px solid ${colors.border.default}`,
+                  backgroundColor: 'transparent',
                 }}
                 onMouseEnter={(e) => {
                   if (earlyLeavers.length > 0) {
-                    e.currentTarget.style.borderColor = colors.status.idle;
+                    e.currentTarget.style.backgroundColor = colors.background.hover;
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = colors.border.default;
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <span className="text-sm font-semibold text-white flex items-center gap-2">
+                <span className="text-sm font-medium flex items-center gap-2" style={{ color: colors.text.secondary }}>
                   <FileDown className="h-4 w-4" />
                   Download Early Leavers
                 </span>
                 <span 
-                  className="px-2.5 py-1 rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: colors.status.idle }}
+                  className="px-2 py-0.5 rounded text-xs font-medium"
+                  style={{ 
+                    backgroundColor: colors.background.tertiary,
+                    color: colors.text.muted
+                  }}
                 >
                   {earlyLeavers.length}
                 </span>
@@ -1243,111 +1379,170 @@ export const Dashboard = ({
         </div>
 
         {/* Step 3: Participant Lists - Tabbed Interface */}
-        <div className="bg-black rounded-lg">
+        <div className="rounded-lg" style={{
+          backgroundColor: colors.background.secondary,
+          border: `1px solid ${colors.border.default}`,
+        }}>
           {/* Tab Headers */}
-          <div className="border-b border-[#2a2a2a]">
+          <div style={{ borderBottom: `1px solid ${colors.border.default}` }}>
             <div className="flex gap-8 px-4 pt-4">
               <button
                 onClick={() => setActiveTab("admitted")}
                 className={`px-1 py-3 text-sm font-medium relative transition-colors ${
                   activeTab === "admitted"
-                    ? "text-white"
-                    : "text-[#b9bbbe] hover:text-[#dcddde]"
+                    ? ""
+                    : ""
                 }`}
+                style={{
+                  color: activeTab === "admitted" ? colors.text.primary : colors.text.secondary,
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== "admitted") {
+                    e.currentTarget.style.color = colors.text.primary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== "admitted") {
+                    e.currentTarget.style.color = colors.text.secondary;
+                  }
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" />
+                  <UserCheck className="h-4 w-4" style={{ color: activeTab === "admitted" ? colors.accent.green.DEFAULT : colors.text.secondary }} />
                   <span>Admitted</span>
-                  <span className="bg-[#000000] px-2 py-0.5 rounded text-xs font-semibold">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium" style={{
+                    backgroundColor: activeTab === "admitted" ? colors.accent.green.muted : colors.background.tertiary,
+                    color: activeTab === "admitted" ? colors.accent.green.DEFAULT : colors.text.muted
+                  }}>
                     {admittedPeople.length}
                   </span>
                 </div>
                 {activeTab === "admitted" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5865f2]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 transition-all" style={{ backgroundColor: colors.accent.green.DEFAULT, boxShadow: colors.glow.green }}></div>
                 )}
               </button>
 
               <button
                 onClick={() => setActiveTab("absent")}
-                className={`px-1 py-3 text-sm font-medium relative transition-colors ${
-                  activeTab === "absent"
-                    ? "text-white"
-                    : "text-[#b9bbbe] hover:text-[#dcddde]"
-                }`}
+                className="px-1 py-3 text-sm font-medium relative transition-colors"
+                style={{
+                  color: activeTab === "absent" ? colors.text.primary : colors.text.secondary,
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== "absent") {
+                    e.currentTarget.style.color = colors.text.primary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== "absent") {
+                    e.currentTarget.style.color = colors.text.secondary;
+                  }
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <UserMinus className="h-4 w-4" />
+                  <UserMinus className="h-4 w-4" style={{ color: activeTab === "absent" ? colors.accent.red.DEFAULT : colors.text.secondary }} />
                   <span>Absent</span>
-                  <span className="bg-[#000000] px-2 py-0.5 rounded text-xs font-semibold">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium" style={{
+                    backgroundColor: activeTab === "absent" ? colors.accent.red.muted : colors.background.tertiary,
+                    color: activeTab === "absent" ? colors.accent.red.DEFAULT : colors.text.muted
+                  }}>
                     {absentPeople.length}
                   </span>
                 </div>
                 {activeTab === "absent" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5865f2]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 transition-all" style={{ backgroundColor: colors.accent.red.DEFAULT, boxShadow: colors.glow.red }}></div>
                 )}
               </button>
 
               <button
                 onClick={() => setActiveTab("earlyLeave")}
-                className={`px-1 py-3 text-sm font-medium relative transition-colors ${
-                  activeTab === "earlyLeave"
-                    ? "text-white"
-                    : "text-[#b9bbbe] hover:text-[#dcddde]"
-                }`}
+                className="px-1 py-3 text-sm font-medium relative transition-colors"
+                style={{
+                  color: activeTab === "earlyLeave" ? colors.text.primary : colors.text.secondary,
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== "earlyLeave") {
+                    e.currentTarget.style.color = colors.text.primary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== "earlyLeave") {
+                    e.currentTarget.style.color = colors.text.secondary;
+                  }
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" style={{ color: activeTab === "earlyLeave" ? colors.accent.yellow.DEFAULT : colors.text.secondary }} />
                   <span>Left Early</span>
-                  <span className="bg-[#000000] px-2 py-0.5 rounded text-xs font-semibold">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium" style={{
+                    backgroundColor: activeTab === "earlyLeave" ? colors.accent.yellow.muted : colors.background.tertiary,
+                    color: activeTab === "earlyLeave" ? colors.accent.yellow.DEFAULT : colors.text.muted
+                  }}>
                     {earlyLeavers.length}
                   </span>
                 </div>
                 {activeTab === "earlyLeave" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5865f2]"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 transition-all" style={{ backgroundColor: colors.accent.yellow.DEFAULT, boxShadow: colors.glow.yellow }}></div>
                 )}
               </button>
             </div>
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-4">
             {activeTab === "admitted" && (
               <div>
                 {admittedPeople.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-[#000000] rounded-full mb-4">
-                      <UserCheck className="h-8 w-8 text-[#72767d]" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ backgroundColor: colors.background.tertiary }}>
+                      <UserCheck className="h-8 w-8" style={{ color: colors.text.disabled }} />
                     </div>
-                    <p className="text-[#dcddde] font-medium">
+                    <p className="font-medium" style={{ color: colors.text.secondary }}>
                       No participants admitted yet
                     </p>
-                    <p className="text-sm text-[#72767d] mt-1">
+                    <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
                       Admitted participants will appear here
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
                     {admittedPeople.map((person) => (
                       <div
                         key={person.id}
-                        className="flex items-center gap-4 p-4 bg-[#000000] hover:bg-[#1a1a1a] rounded-lg transition-colors group"
+                        className="flex items-center gap-3 p-3 rounded transition-colors group relative"
+                        style={{
+                          backgroundColor: 'transparent',
+                          borderLeft: `3px solid ${colors.accent.green.DEFAULT}`,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = colors.background.hover;
+                          e.currentTarget.style.borderLeftColor = colors.accent.green.DEFAULT;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.borderLeftColor = colors.accent.green.DEFAULT;
+                        }}
                       >
-                        <div className="flex items-center justify-center w-10 h-10 bg-linear-to-br from-[#3ba55d] to-[#2d7d46] rounded-full text-white font-bold text-sm shrink-0">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm shrink-0 transition-all" style={{
+                          backgroundColor: colors.accent.green.muted,
+                          border: `2px solid ${colors.accent.green.DEFAULT}`,
+                          color: colors.accent.green.DEFAULT
+                        }}>
                           {person.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-[#dcddde]">
+                          <p className="font-medium" style={{ color: colors.text.primary }}>
                             {person.name}
                           </p>
-                          <p className="text-sm text-[#72767d] truncate">
+                          <p className="text-sm truncate" style={{ color: colors.text.muted }}>
                             {person.email}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-[#72767d] mb-0.5">
+                          <p className="text-xs mb-0.5" style={{ color: colors.text.muted }}>
                             Admitted at
                           </p>
-                          <p className="text-sm font-semibold text-[#3ba55d]">
+                          <p className="text-sm font-medium" style={{ color: colors.text.secondary }}>
                             {formatTimeOnly(person.admittedAt)}
                           </p>
                         </div>
@@ -1362,35 +1557,54 @@ export const Dashboard = ({
               <div>
                 {absentPeople.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                      <UserMinus className="h-8 w-8 text-gray-400" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ backgroundColor: colors.background.tertiary }}>
+                      <UserMinus className="h-8 w-8" style={{ color: colors.text.disabled }} />
                     </div>
-                    <p className="text-gray-500 font-medium">
+                    <p className="font-medium" style={{ color: colors.text.secondary }}>
                       No absent participants
                     </p>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
                       All registered participants are present
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
                     {absentPeople.map((person) => (
                       <div
                         key={person.id}
-                        className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                        className="flex items-center gap-3 p-3 rounded transition-colors relative"
+                        style={{
+                          backgroundColor: 'transparent',
+                          borderLeft: `3px solid ${colors.accent.red.DEFAULT}`,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = colors.background.hover;
+                          e.currentTarget.style.borderLeftColor = colors.accent.red.DEFAULT;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.borderLeftColor = colors.accent.red.DEFAULT;
+                        }}
                       >
-                        <div className="flex items-center justify-center w-10 h-10 bg-linear-to-br from-red-500 to-pink-600 rounded-full text-white font-bold text-sm shrink-0">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm shrink-0 transition-all" style={{
+                          backgroundColor: colors.accent.red.muted,
+                          border: `2px solid ${colors.accent.red.DEFAULT}`,
+                          color: colors.accent.red.DEFAULT
+                        }}>
                           {person.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-medium" style={{ color: colors.text.primary }}>
                             {person.name}
                           </p>
-                          <p className="text-sm text-gray-500 truncate">
+                          <p className="text-sm truncate" style={{ color: colors.text.muted }}>
                             {person.email}
                           </p>
                         </div>
-                        <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                        <span className="px-2 py-1 rounded text-xs font-medium" style={{
+                          backgroundColor: colors.background.tertiary,
+                          color: colors.text.muted
+                        }}>
                           Absent
                         </span>
                       </div>
@@ -1404,50 +1618,69 @@ export const Dashboard = ({
               <div>
                 {earlyLeavers.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                      <LogOut className="h-8 w-8 text-gray-400" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ backgroundColor: colors.background.tertiary }}>
+                      <LogOut className="h-8 w-8" style={{ color: colors.text.disabled }} />
                     </div>
-                    <p className="text-gray-500 font-medium">
+                    <p className="font-medium" style={{ color: colors.text.secondary }}>
                       No early departures
                     </p>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
                       Participants who left early will appear here
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
                     {earlyLeavers.map((person) => (
                       <div
                         key={person.id}
-                        className="p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                        className="p-3 rounded transition-colors relative"
+                        style={{
+                          backgroundColor: 'transparent',
+                          borderLeft: `3px solid ${colors.accent.yellow.DEFAULT}`,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = colors.background.hover;
+                          e.currentTarget.style.borderLeftColor = colors.accent.yellow.DEFAULT;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.borderLeftColor = colors.accent.yellow.DEFAULT;
+                        }}
                       >
-                        <div className="flex items-center gap-4 mb-3">
-                          <div className="flex items-center justify-center w-10 h-10 bg-linear-to-br from-amber-500 to-orange-600 rounded-full text-white font-bold text-sm shrink-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm shrink-0 transition-all" style={{
+                            backgroundColor: colors.accent.yellow.muted,
+                            border: `2px solid ${colors.accent.yellow.DEFAULT}`,
+                            color: colors.accent.yellow.DEFAULT
+                          }}>
                             {person.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900">
+                            <p className="font-medium" style={{ color: colors.text.primary }}>
                               {person.name}
                             </p>
-                            <p className="text-sm text-gray-500 truncate">
+                            <p className="text-sm truncate" style={{ color: colors.text.muted }}>
                               {person.email}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-gray-500 mb-0.5">
+                            <p className="text-xs mb-0.5" style={{ color: colors.text.muted }}>
                               Left at
                             </p>
-                            <p className="text-sm font-semibold text-amber-600">
+                            <p className="text-sm font-medium" style={{ color: colors.text.secondary }}>
                               {formatTimeOnly(person.leftAt)}
                             </p>
                           </div>
                         </div>
-                        <div className="pl-14 pr-4">
-                          <div className="bg-white border border-amber-200 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">
+                        <div className="pl-13 pr-3">
+                          <div className="p-2 rounded" style={{
+                            backgroundColor: colors.background.tertiary,
+                            border: `1px solid ${colors.border.default}`
+                          }}>
+                            <p className="text-xs mb-1" style={{ color: colors.text.muted }}>
                               Reason for leaving:
                             </p>
-                            <p className="text-sm text-gray-700">
+                            <p className="text-sm" style={{ color: colors.text.secondary }}>
                               {person.leaveReason || "No reason provided"}
                             </p>
                           </div>

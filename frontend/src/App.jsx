@@ -22,6 +22,7 @@ import {
   GeneratedCard,
   EarlyLeaveModal,
 } from "./components/CheckinComponents";
+import { SettingsModal } from "./components/SettingsModal";
 import { UnifiedCheckinView } from "./components/UnifiedCheckinView";
 import {
   WorkshopControl,
@@ -46,6 +47,7 @@ export default function App() {
   const [currentCard, setCurrentCard] = useState(null);
   const [personToCertify, setPersonToCertify] = useState(null); // [NEW] For certificate modal
   const [personLeaving, setPersonLeaving] = useState(null); // [NEW] For early leave modal
+  const [showSettingsModal, setShowSettingsModal] = useState(false); // [NEW] For settings modal
 
   // --- [NEW] Customization States (selection-based, not modal) ---
   const [selectedCertAction, setSelectedCertAction] = useState(null); // 'certificate' | 'pass' | 'send' | null
@@ -108,16 +110,36 @@ held on ${new Date().toLocaleDateString("en-IN", {
       const result = await workshopDB.getActiveWorkshop();
       if (result.success && result.data) {
         const workshop = result.data;
-        setCurrentWorkshopId(workshop.id);
-        setWorkshopState(workshop.state);
-        setWorkshopEndTime(new Date(workshop.end_time));
-        setIsPaused(workshop.is_paused);
-        setCertificateThreshold(workshop.certificate_threshold);
         
         // Calculate time left
         const now = new Date();
         const endTime = new Date(workshop.end_time);
         const secondsLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+        
+        // Only resume as active if time hasn't expired and state is active
+        // If time has expired or state is finished, set to finished/idle
+        let finalState = workshop.state;
+        if (workshop.state === 'active' && secondsLeft <= 0) {
+          // Workshop time has expired, mark as finished
+          finalState = 'finished';
+          if (workshop.id) {
+            await workshopDB.updateWorkshopState(workshop.id, 'finished', false);
+          }
+        } else if (workshop.state === 'active' && secondsLeft > 0) {
+          // Only resume as active if there's time remaining
+          finalState = 'active';
+        } else if (workshop.state === 'finished') {
+          finalState = 'finished';
+        } else {
+          // For any other state or if time expired, set to idle
+          finalState = 'idle';
+        }
+        
+        setCurrentWorkshopId(workshop.id);
+        setWorkshopState(finalState);
+        setWorkshopEndTime(finalState === 'active' ? new Date(workshop.end_time) : null);
+        setIsPaused(workshop.is_paused && finalState === 'active');
+        setCertificateThreshold(workshop.certificate_threshold);
         setTimeLeft(secondsLeft);
         
         // Load participants
@@ -141,34 +163,6 @@ held on ${new Date().toLocaleDateString("en-IN", {
             passSent: p.pass_sent
           }));
           setRegistrants(convertedParticipants);
-          
-          // Restore progress counters from database
-          console.log('📊 [DATABASE] Restoring progress counters...');
-          
-          // Count passes sent from participant flags
-          const passesSentCount = convertedParticipants.filter(p => p.passSent).length;
-          setPassesSent(passesSentCount);
-          console.log('   → Passes sent:', passesSentCount);
-          
-          // Count certificates sent from participant flags
-          const certificatesSentCount = convertedParticipants.filter(p => p.certificateSent).length;
-          setCertificatesSent(certificatesSentCount);
-          console.log('   → Certificates sent:', certificatesSentCount);
-          
-          // Fetch failure stats from delivery logs
-          const passStatsResult = await workshopDB.getDeliveryStats(workshop.id, 'pass');
-          if (passStatsResult.success) {
-            setPassesFailed(passStatsResult.data.failed);
-            console.log('   → Passes failed:', passStatsResult.data.failed);
-          }
-          
-          const certStatsResult = await workshopDB.getDeliveryStats(workshop.id, 'certificate');
-          if (certStatsResult.success) {
-            setCertificatesFailed(certStatsResult.data.failed);
-            console.log('   → Certificates failed:', certStatsResult.data.failed);
-          }
-          
-          console.log('✅ [DATABASE] Progress counters restored');
         }
         
         // Load certificate template
@@ -208,7 +202,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- Workshop Timer Logic ---
   useEffect(() => {
-    if (workshopState !== "active" || !workshopEndTime || isPaused) {
+    if (workshopState !== "active" || !workshopEndTime || isPaused || !currentWorkshopId) {
       return;
     }
 
@@ -333,21 +327,13 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // [NEW] Certificate Eligibility Logic
   const eligibleForCertificate = useMemo(() => {
-    // Certificate eligibility requires:
-    // 1. Workshop must have ended
-    // 2. Participant must be admitted
-    // 3. Participant must have attended at least 75% of workshop duration
-    
-    if (workshopState !== 'finished') {
-      return []; // No one eligible until workshop ends
-    }
-    
-    const minimumStayDuration = workshopDurationInSeconds * 0.75; // 75% attendance rule
+    const thresholdInSeconds = (parseInt(certificateThreshold, 10) || 0) * 60;
+    const minimumStayDuration = workshopDurationInSeconds - thresholdInSeconds;
 
     // 1. All participants who stayed the whole time
     const fullTime = admittedPeople;
 
-    // 2. Participants who left early but met the 75% attendance requirement
+    // 2. Participants who left early but met the threshold
     const eligibleEarlyLeavers = earlyLeavers.filter((person) => {
       if (!person.admittedAt || !person.leftAt) return false;
       const stayDuration =
@@ -359,9 +345,9 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
     return [...fullTime, ...eligibleEarlyLeavers];
   }, [
-    workshopState,
     admittedPeople,
     earlyLeavers,
+    certificateThreshold,
     workshopDurationInSeconds,
   ]);
 
@@ -377,8 +363,6 @@ held on ${new Date().toLocaleDateString("en-IN", {
       if (!sendCertificatesPermission) {
         return;
       }
-      
-      console.log('\n🎓 [WORKFLOW] Step 5: Sending certificates with manual approval...');
 
       // Prevent concurrent executions using ref
       if (sendingInProgressRef.current) {
@@ -513,17 +497,6 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
   // --- Handle Reset Workshop ---
   const handleResetWorkshop = async () => {
-    // Check if certificates are pending before allowing reset
-    if (workshopState === 'finished' && eligibleForCertificate.length > 0) {
-      const pendingCertificates = eligibleForCertificate.filter(p => !p.certificateSent);
-      if (pendingCertificates.length > 0) {
-        showErrorMessage(
-          `Cannot reset workshop: ${pendingCertificates.length} participant(s) still need certificates. Please send all certificates before resetting.`
-        );
-        return;
-      }
-    }
-    
     if (currentWorkshopId) {
       // Mark workshop as finished in database
       await workshopDB.updateWorkshopState(currentWorkshopId, "idle", false);
@@ -534,12 +507,6 @@ held on ${new Date().toLocaleDateString("en-IN", {
     setIsPaused(false);
     setTimeLeft(durationHours * 3600 + durationMinutes * 60);
     setCurrentWorkshopId(null);
-    
-    // Reset progress counters
-    setPassesSent(0);
-    setPassesFailed(0);
-    setCertificatesSent(0);
-    setCertificatesFailed(0);
   };
 
   const showErrorMessage = (message) => {
@@ -916,9 +883,8 @@ held on ${new Date().toLocaleDateString("en-IN", {
               setRegistrants(dataWithFlags);
             }
           } else {
-            // No active workshop - block import
-            alert('⚠️ Please start the workshop first (set duration and click Start), then import participants.\n\nThis ensures your participant data is saved to the database.');
-            return;
+            // No active workshop, just load into memory
+            setRegistrants(dataWithFlags);
           }
         } catch (error) {
           console.error('Error loading CSV:', error);
@@ -936,13 +902,32 @@ held on ${new Date().toLocaleDateString("en-IN", {
   // --- [MODIFIED] Main App Render (only happens *after* data is loaded) ---
   return (
     <div 
-      className="h-screen flex font-sans overflow-hidden"
+      className="h-screen flex font-sans overflow-hidden relative"
       style={{ 
         backgroundColor: colors.background.primary,
         gap: '12px',
         padding: '12px'
       }}
     >
+      {/* Mantiz Title at Top */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '4px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          fontFamily: '"BBH Hegarty", sans-serif',
+          fontWeight: '100',
+          fontSize: '1.3rem',
+          color: '#ffffff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          pointerEvents: 'none'
+        }}
+      >
+        Mantiz
+      </div>
       {/* Left Sidebar - Icon Navigation */}
       <Sidebar 
         currentView={currentView}
@@ -958,7 +943,8 @@ held on ${new Date().toLocaleDateString("en-IN", {
         style={{ 
           backgroundColor: colors.background.primary,
           border: `1px solid ${colors.border.default}`,
-          height: 'calc(100vh - 2.25rem - 24px + 72px)'
+          height: 'calc(100vh - 2.25rem - 24px + 72px)',
+          marginRight: '-24px'
         }}
       >
         {/* Middle Panel - Context List */}
@@ -974,11 +960,11 @@ held on ${new Date().toLocaleDateString("en-IN", {
         
         {/* Main content area */}
         <div 
-          className="flex-1 flex flex-col overflow-hidden"
+          className="flex-1 flex flex-col overflow-hidden overflow-x-hidden"
           style={{ backgroundColor: colors.background.secondary }}
         >
           {/* Content wrapper */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-6">
           <GeneratedCard
             person={currentCard}
@@ -1005,6 +991,13 @@ held on ${new Date().toLocaleDateString("en-IN", {
               person={personLeaving}
               onClose={() => setPersonLeaving(null)}
               onSubmit={handleSubmitLeaveEarly}
+            />
+          )}
+
+          {/* [NEW] Settings Modal Render */}
+          {showSettingsModal && (
+            <SettingsModal
+              onClose={() => setShowSettingsModal(false)}
             />
           )}
 
@@ -1194,15 +1187,15 @@ held on ${new Date().toLocaleDateString("en-IN", {
                     </div>
                     <button
                       onClick={handleSendCertificates}
-                      disabled={certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
+                      disabled={certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0}
                       className="inline-flex items-center px-6 py-3 font-semibold rounded-lg shadow-md transition duration-200"
                       style={{
-                        backgroundColor: (certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
+                        backgroundColor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0)
                           ? colors.background.hover
                           : colors.accent.blurple,
                         color: '#ffffff',
-                        opacity: (certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
-                        cursor: (certificatesSending || workshopState !== 'finished' || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
+                        opacity: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) ? 0.6 : 1,
+                        cursor: (certificatesSending || eligibleForCertificate.filter(p => !p.certificateSent).length === 0) 
                           ? 'not-allowed' 
                           : 'pointer',
                       }}
@@ -1296,7 +1289,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
 
         {/* Settings Button */}
         <button
-          onClick={() => setCurrentView("settings")}
+          onClick={() => setShowSettingsModal(true)}
           className="w-9 h-9 rounded flex items-center justify-center transition-colors"
           style={{
             color: colors.background.quaternary,

@@ -161,67 +161,36 @@ const MiddlePanel = ({
     );
   };
 
-  // Get panel title based on view
-  const getPanelTitle = () => {
-    switch (currentView) {
-      case "dashboard":
-        return "Participants";
-      case "checkin":
-        return "Recent Check-ins";
-      case "certificates":
-        return "Eligible Participants";
-      case "ai":
-        return "AI Tools";
-      default:
-        return "Participants";
-    }
-  };
-
   return (
     <div
       className="flex flex-col overflow-hidden"
       style={{
-        width: "290px",
+        marginTop: 2.4,
+        width: "302px",
         height: "calc(100% - 10px)",
         backgroundColor: colors.background.primary,
         borderRight: `1px solid ${colors.border.default}`,
       }}
     >
-      {/* Header */}
-      <div
-        className="px-4 py-3 border-b flex items-center justify-between shrink-0"
-        style={{
-          backgroundColor: colors.background.primary,
-          borderColor: colors.border.default,
-        }}
-      >
-        <h3
-          className="font-semibold text-sm uppercase tracking-wide"
-          style={{ color: colors.text.secondary }}
-        >
-          {getPanelTitle()}
-        </h3>
-        <span
-          className="text-xs font-medium px-1.5 py-0.5 rounded"
+      {/* Search Bar - Replaces Header */}
+      {(currentView === "dashboard" || currentView === "certificates") && (
+        <div className="py-1 border-b shrink-0 flex items-center"
           style={{
-            backgroundColor: colors.background.tertiary,
-            color: colors.text.muted,
+            backgroundColor: colors.background.primary,
+            borderColor: colors.border.default,
+            paddingLeft: '3px',
+            paddingRight: '3px',
           }}
         >
-          {filteredRegistrants.length}
-        </span>
-      </div>
-
-      {/* Search Bar */}
-      {(currentView === "dashboard" || currentView === "certificates") && (
-        <div className="px-2 pt-2 pb-1 shrink-0">
           <input
             type="text"
             placeholder="Search participants..."
             value={searchQuery}
             onChange={(e) => setSearchQuery?.(e.target.value)}
-            className="w-full px-2 py-1.5 rounded-lg text-sm transition-colors duration-150 outline-none"
+            className="px-2 py-1.5 rounded-lg text-sm transition-colors duration-150 outline-none"
             style={{
+              width: 'calc(100% - 6px)',
+              margin: '3px',
               backgroundColor: colors.background.tertiary,
               color: colors.text.primary,
               border: `1px solid ${colors.border.default}`,
@@ -263,17 +232,28 @@ const MiddlePanel = ({
 
 // Participant List Item Component
 const ParticipantListItem = ({ participant, onClick }) => {
+  const statusColor = participant.status === 'admitted' 
+    ? colors.accent.green.DEFAULT 
+    : participant.status === 'left_early'
+    ? colors.accent.yellow.DEFAULT
+    : participant.status === 'absent'
+    ? colors.accent.red.DEFAULT
+    : colors.accent.blurple.DEFAULT;
+
   return (
     <div
-      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-all duration-150 relative"
       style={{
         backgroundColor: "transparent",
+        borderLeft: `3px solid transparent`,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
+        e.currentTarget.style.borderLeftColor = statusColor;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = "transparent";
+        e.currentTarget.style.borderLeftColor = "transparent";
       }}
       onClick={onClick}
     >
@@ -308,17 +288,24 @@ const CheckinListItem = ({ participant, onClick }) => {
     return `${hours}h ago`;
   }, [participant.admittedAt, currentTime]);
 
+  const borderColor = participant.onSpot 
+    ? colors.accent.yellow.DEFAULT 
+    : colors.accent.green.DEFAULT;
+
   return (
     <div
-      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-all duration-150 relative"
       style={{
         backgroundColor: "transparent",
+        borderLeft: `3px solid transparent`,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
+        e.currentTarget.style.borderLeftColor = borderColor;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = "transparent";
+        e.currentTarget.style.borderLeftColor = "transparent";
       }}
       onClick={onClick}
     >
@@ -358,17 +345,24 @@ const CheckinListItem = ({ participant, onClick }) => {
 
 // Certificate List Item Component
 const CertificateListItem = ({ participant, onClick }) => {
+  const borderColor = participant.status === 'admitted' 
+    ? colors.accent.green.DEFAULT 
+    : colors.accent.yellow.DEFAULT;
+
   return (
     <div
-      className="px-2 py-2 rounded mb-1 cursor-pointer transition-colors duration-150"
+      className="px-2 py-2 rounded mb-1 cursor-pointer transition-all duration-150 relative"
       style={{
         backgroundColor: "transparent",
+        borderLeft: `3px solid transparent`,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.middlePanel.hover;
+        e.currentTarget.style.borderLeftColor = borderColor;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = "transparent";
+        e.currentTarget.style.borderLeftColor = "transparent";
       }}
       onClick={onClick}
     >
@@ -407,8 +401,21 @@ const CustomizationListItem = ({ icon, label, isSelected, onClick }) => {
       style={{
         backgroundColor: isSelected ? colors.background.hover : "transparent",
         borderLeft: isSelected
-          ? `3px solid ${colors.accent.blurple}`
+          ? `3px solid ${colors.accent.blurple.DEFAULT}`
           : "3px solid transparent",
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor =
+            colors.background.middlePanelHover;
+          e.currentTarget.style.borderLeftColor = colors.accent.blurple.DEFAULT + '66';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.backgroundColor = "transparent";
+          e.currentTarget.style.borderLeftColor = "transparent";
+        }
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
