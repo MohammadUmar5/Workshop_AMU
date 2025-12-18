@@ -6,20 +6,20 @@ When deploying to Render, you need to configure the following environment variab
 
 ### Required Environment Variables
 
-| Variable Name | Description | Example/Notes |
-|--------------|-------------|---------------|
-| `SUPABASE_URL` | Your Supabase project URL | `https://your-project.supabase.co` |
-| `SUPABASE_SERVICE_KEY` | Supabase service role key | Found in Supabase Dashboard > Settings > API |
-| `SMTP_USER` | Gmail address for sending emails | `your-email@gmail.com` |
-| `SMTP_PASS` | Gmail App Password | 16-character app password (not your regular password) |
-| `NODE_ENV` | Node environment | Set to `production` |
+| Variable Name          | Description                       | Example/Notes                                                 |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------- |
+| `SUPABASE_URL`         | Your Supabase project URL         | `https://your-project.supabase.co`                            |
+| `SUPABASE_SERVICE_KEY` | Supabase service role key         | Found in Supabase Dashboard > Settings > API                  |
+| `RESEND_API_KEY`       | Resend API key for sending emails | `re_xxxxxxxxxxxxxxxxxxxx`                                     |
+| `EMAIL_FROM`           | Sender email address              | `onboarding@resend.dev` (for testing) or your verified domain |
+| `NODE_ENV`             | Node environment                  | Set to `production`                                           |
 
 ### Optional Environment Variables
 
-| Variable Name | Description | Example/Notes |
-|--------------|-------------|---------------|
+| Variable Name  | Description                | Example/Notes                                                              |
+| -------------- | -------------------------- | -------------------------------------------------------------------------- |
 | `FRONTEND_URL` | Your frontend URL for CORS | `https://your-frontend.vercel.app` or `https://your-frontend.onrender.com` |
-| `PORT` | Server port | Automatically set by Render, defaults to 4000 locally |
+| `PORT`         | Server port                | Automatically set by Render, defaults to 4000 locally                      |
 
 ## How to Set Environment Variables in Render
 
@@ -29,17 +29,6 @@ When deploying to Render, you need to configure the following environment variab
 4. Click **Add Environment Variable**
 5. Add each variable listed above with their values
 6. Click **Save Changes**
-
-## Gmail App Password Setup
-
-If you haven't set up a Gmail App Password yet:
-
-1. Go to your Google Account settings
-2. Enable 2-Step Verification if not already enabled
-3. Go to Security > 2-Step Verification > App passwords
-4. Generate a new app password for "Mail"
-5. Copy the 16-character password (no spaces)
-6. Use this as your `SMTP_PASS` value
 
 ## Render Build Settings
 
@@ -52,19 +41,24 @@ When creating your web service on Render:
 ## Important Notes
 
 ### Native Dependencies
+
 Your backend uses `canvas` and `sharp` libraries which require native compilation. The first deployment may take 5-10 minutes to build these dependencies.
 
 ### File Storage
+
 The current setup stores uploaded templates in the local `templates/` directory. **Render uses ephemeral storage**, meaning files are deleted on each deployment or restart.
 
 If you need persistent file storage, consider:
+
 - **Supabase Storage** (recommended for your setup)
 - AWS S3
 - Cloudinary
 - Another cloud storage service
 
 ### Cold Starts (Free Tier)
+
 If using Render's free tier:
+
 - Services spin down after 15 minutes of inactivity
 - First request after spin-down takes 10-30 seconds (cold start)
 - Consider upgrading to paid tier for production use
@@ -102,22 +96,26 @@ And update the backend's `FRONTEND_URL` environment variable to match your front
 ## Troubleshooting
 
 ### Build Fails
+
 - Check Render logs for specific errors
 - Ensure all dependencies in package.json are correct
 - Verify Node version compatibility
 
 ### Email Not Sending
-- Verify `SMTP_USER` and `SMTP_PASS` are correct
-- Ensure Gmail App Password is valid
-- Check Gmail security settings
+
+- Verify `RESEND_API_KEY` is correct
+- Ensure `EMAIL_FROM` is set (defaults to `onboarding@resend.dev`)
+- Check Resend dashboard for API limits or errors
+- Verify domain is verified in Resend (if using custom domain)
 
 ### Database Connection Issues
+
 - Verify `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
 - Check Supabase dashboard for connection errors
 - Ensure service role key is used (not anon key)
 
 ### CORS Errors
+
 - Verify `FRONTEND_URL` is set correctly
 - Check that frontend is making requests to correct backend URL
 - Ensure credentials are included in requests if needed
-

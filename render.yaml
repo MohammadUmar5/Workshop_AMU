@@ -11,9 +11,9 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
-      - key: SMTP_USER
+      - key: RESEND_API_KEY
         sync: false
-      - key: SMTP_PASS
+      - key: EMAIL_FROM
         sync: false
       - key: FRONTEND_URL
         sync: false
