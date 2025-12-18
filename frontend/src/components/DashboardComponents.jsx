@@ -766,11 +766,14 @@ export const Dashboard = ({
       <div 
         className="h-[44.5px] sticky top-0 z-30 flex items-center justify-between px-6"
         style={{
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(7, 7, 9, 0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           borderBottom: `1px solid ${colors.border.default}`,
           marginLeft: '-24px',
           marginRight: '-24px',
           marginTop: '-24px',
+          transition: 'backdrop-filter 0.2s',
         }}
       >
         {/* Left: Workshop Title/Breadcrumb */}

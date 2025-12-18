@@ -34,7 +34,7 @@ const getFontFamily = (fontValue) => {
 // Certificate generation with fixed template and fonts
 export async function generateCertificate({ name }) {
   // Fixed configuration - no longer customizable
-  const nameFont = 'cursive';
+  const nameFont = 'sans';
   const certBody = 'for successfully participating in our workshop and demonstrating dedication to learning and growth.';
   const certTitleFont = 'elegant-serif';
   const sigFont = 'handwriting';
@@ -62,9 +62,9 @@ export async function generateCertificate({ name }) {
     const ctx = canvas.getContext('2d');
     
     // Configure text rendering (scale font size)
-    const fontSize = 114 * scale;  // 72px base * 2 for display * scale
+    const fontSize = 50 * scale;  // 72px base * 2 for display * scale
     const fontFamily = getFontFamily(nameFont);
-    ctx.font = `bold ${fontSize}px "${fontFamily}"`;
+    ctx.font = `normal ${fontSize}px "${fontFamily}"`;
     ctx.fillStyle = '#111827';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -74,7 +74,7 @@ export async function generateCertificate({ name }) {
     // Double for 2x: 280 * 2 = 560
     // Add half of name space (112px / 2 * 2 = 112): 560 + 112 = 672
     const textX = width / 2;
-    const textY = 430 * scale;  // Position accounting for scale
+    const textY = 405 * scale;  // Position accounting for scale
     
     console.log(`   → Drawing text at position (${textX}, ${textY}) with font size ${fontSize}px`);
     ctx.fillText(name, textX, textY);
