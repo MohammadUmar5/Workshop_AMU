@@ -411,7 +411,9 @@ export async function updateParticipantDeliveryStatus(participantId, type, sent)
 // ============================================
 
 /**
+ * DEPRECATED: Certificate templates are now fixed
  * Save or update certificate template
+ * @deprecated Certificates now use a fixed template image
  * @param {string} workshopId - Workshop UUID
  * @param {Object} templateConfig - Certificate configuration
  * @returns {Object} Template record
@@ -457,7 +459,9 @@ export async function saveCertificateTemplate(workshopId, templateConfig) {
 }
 
 /**
+ * DEPRECATED: Certificate templates are now fixed
  * Get active certificate template for a workshop
+ * @deprecated Certificates now use a fixed template image
  * @param {string} workshopId - Workshop UUID
  * @returns {Object} Template configuration
  */

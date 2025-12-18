@@ -20,11 +20,9 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, "templates"));
   },
   filename: (req, file, cb) => {
-    // Determine fixed name based on URL endpoint
+    // Only pass templates are customizable now
     let targetFilename;
-    if (req.path.includes("certificate")) {
-      targetFilename = "certificate-base.png";
-    } else if (req.path.includes("pass")) {
+    if (req.path.includes("pass")) {
       targetFilename = "pass-base.png";
     } else {
       targetFilename = file.originalname;
@@ -60,15 +58,14 @@ verifyMailer(); // Check Gmail SMTP connection
 
 app.post("/api/send-email", sendEmail);
 
-// Certificate generation endpoint
+// Certificate generation endpoint (uses fixed template)
 app.post("/api/certificates/generate", async (req, res) => {
   console.log("\n📨 [BACKEND API] Certificate generation request received");
   console.log("   → Name:", req.body.name);
   console.log("   → Email:", req.body.email);
 
   try {
-    const { name, email, nameFont, certBody, certTitleFont, sigFont } =
-      req.body;
+    const { name, email } = req.body;
 
     if (!name || !email) {
       console.error("❌ [BACKEND API] Missing required fields");
@@ -77,16 +74,9 @@ app.post("/api/certificates/generate", async (req, res) => {
         .json({ success: false, error: "Name and email are required" });
     }
 
-    console.log("   → Calling certificate service...");
-    // Generate certificate and send email using the service
-    const result = await generateAndSendCertificate({
-      name,
-      email,
-      nameFont,
-      certBody,
-      certTitleFont,
-      sigFont,
-    });
+    console.log("   → Calling certificate service with fixed template...");
+    // Generate certificate and send email using the service (fixed template)
+    const result = await generateAndSendCertificate({ name, email });
 
     console.log(
       "   → Certificate service result:",
@@ -125,38 +115,7 @@ app.post("/api/certificates/generate", async (req, res) => {
   }
 });
 
-// Template upload endpoints
-app.post(
-  "/api/templates/certificate",
-  upload.single("template"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No template file uploaded" });
-      }
-
-      const templatePath = path.join("templates", req.file.filename);
-      const config = req.body.config ? JSON.parse(req.body.config) : {};
-
-      console.log(`Certificate template saved: ${templatePath}`);
-
-      res.json({
-        success: true,
-        message: "Certificate template saved successfully",
-        templatePath,
-        filename: req.file.filename,
-        config,
-      });
-    } catch (error) {
-      console.error("Certificate template upload error:", error);
-      res.status(500).json({
-        error: "Failed to save certificate template",
-        details: error.message,
-      });
-    }
-  }
-);
-
+// Template upload endpoint (Pass only - certificates use fixed template)
 app.post("/api/templates/pass", upload.single("template"), async (req, res) => {
   try {
     if (!req.file) {

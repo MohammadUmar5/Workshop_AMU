@@ -35,7 +35,6 @@ import {
 } from "./components/DashboardComponents";
 import { Sidebar } from "./components/Sidebar";
 import MiddlePanel from "./components/MiddlePanel";
-import CertificateCustomizationPanel from "./components/CertificateCustomizationPanel";
 import PassCustomizationPanel from "./components/PassCustomizationPanel";
 
 // --- Main App Component ---
@@ -49,9 +48,8 @@ export default function App() {
   const [personLeaving, setPersonLeaving] = useState(null); // [NEW] For early leave modal
   const [showSettingsModal, setShowSettingsModal] = useState(false); // [NEW] For settings modal
 
-  // --- [NEW] Customization States (selection-based, not modal) ---
-  const [selectedCertAction, setSelectedCertAction] = useState(null); // 'certificate' | 'pass' | 'send' | null
-  const [certTemplateConfig, setCertTemplateConfig] = useState(null);
+  // --- Pass Customization State (certificates use fixed template) ---
+  const [selectedCertAction, setSelectedCertAction] = useState(null); // 'pass' | null
   const [passTemplateConfig, setPassTemplateConfig] = useState(null);
 
   // --- Workshop State ---
@@ -71,19 +69,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState("dashboard"); // Start from dashboard
   const [activeSubView, setActiveSubView] = useState("checkin");
 
-  // --- [NEW] Certificate Design State ---
-  const [certBody, setCertBody] =
-    useState(`For successfully participating in the "Mini Workshop on Physics"
-held on ${new Date().toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })}.`);
-  const [nameFont, setNameFont] = useState("cursive"); // Participant Name font
-  const [sigFont, setSigFont] = useState("cursive"); // Signature font
-  const [certBg, setCertBg] = useState("White"); // Background color by name
-  const [certBorder, setCertBorder] = useState("simple"); // [NEW] Border style
-  const [certTitleFont, setCertTitleFont] = useState("elegant-serif"); // [NEW] Title font
+  // --- Certificate Configuration (fixed template) ---
   const [certificateThreshold, setCertificateThreshold] = useState(0); // In minutes
 
   // --- Certificate Sending Status ---
@@ -216,17 +202,7 @@ held on ${new Date().toLocaleDateString("en-IN", {
           }
         }
         
-        // Load certificate template
-        const certTemplateResult = await workshopDB.getActiveCertificateTemplate(workshop.id);
-        if (certTemplateResult.success && certTemplateResult.data) {
-          const template = certTemplateResult.data;
-          setCertBody(template.body);
-          setNameFont(template.name_font);
-          setCertTitleFont(template.title_font);
-          setSigFont(template.sig_font);
-          setCertBg(template.bg_color);
-          setCertBorder(template.border_style);
-        }
+        // Certificate templates are now fixed - no need to load from DB
       }
       setDbInitialized(true);
     };
@@ -436,22 +412,14 @@ held on ${new Date().toLocaleDateString("en-IN", {
       setCertificatesFailed(0);
 
       console.log(`Starting to send certificates to ${pendingParticipants.length} pending participants...`);
-
-      const certificateConfig = {
-        certBody,
-        nameFont,
-        sigFont,
-        certBg,
-        certBorder,
-        certTitleFont
-      };
+      console.log('   → Using fixed certificate template');
 
       let sent = 0;
       let failed = 0;
 
       for (const participant of pendingParticipants) {
         try {
-          const success = await generateAndSendCertificate(participant, certificateConfig, currentWorkshopId);
+          const success = await generateAndSendCertificate(participant, currentWorkshopId);
           if (success) {
             sent++;
             setCertificatesSent(sent);
@@ -1032,17 +1000,11 @@ held on ${new Date().toLocaleDateString("en-IN", {
             onClose={() => setCurrentCard(null)}
           />
 
-          {/* [NEW] Certificate Modal Render */}
+          {/* Certificate Modal Render (uses fixed template for display) */}
           {personToCertify && (
             <CertificateGenerator
               person={personToCertify}
               onClose={() => setPersonToCertify(null)}
-              certBody={certBody}
-              nameFont={nameFont}
-              sigFont={sigFont}
-              certBg={certBg}
-              certBorder={certBorder}
-              certTitleFont={certTitleFont}
             />
           )}
 
@@ -1133,50 +1095,10 @@ held on ${new Date().toLocaleDateString("en-IN", {
             </div>
           )}
 
-          {/* --- [NEW] Certificates Tab Content --- */}
+          {/* --- Certificates Tab Content (Fixed Template) --- */}
           {currentView === "certificates" && (
             <div id="certificates-panel" className="h-full">
-              {/* Show Customization Panel when action is selected */}
-              {selectedCertAction === 'certificate' && (
-                <CertificateCustomizationPanel
-                  currentConfig={certTemplateConfig}
-                  onSave={async (config, templatePath) => {
-                    setCertTemplateConfig(config);
-                    
-                    // Update individual state variables
-                    setCertBody(config.body);
-                    setNameFont(config.nameFont);
-                    setCertTitleFont(config.titleFont);
-                    setSigFont(config.sigFont);
-                    setCertBg(config.bgColor);
-                    setCertBorder(config.borderStyle);
-                    
-                    // Save to database if workshop is active
-                    if (currentWorkshopId) {
-                      const result = await workshopDB.saveCertificateTemplate(currentWorkshopId, {
-                        certBody: config.body,
-                        nameFont: config.nameFont,
-                        certTitleFont: config.titleFont,
-                        sigFont: config.sigFont,
-                        certBg: config.bgColor,
-                        certBorder: config.borderStyle,
-                        templateImageUrl: templatePath
-                      });
-                      
-                      if (result.success) {
-                        console.log('Certificate template saved to database');
-                      } else {
-                        console.error('Failed to save template to database:', result.error);
-                      }
-                    }
-                    
-                    console.log('Certificate template saved:', templatePath);
-                    setSelectedCertAction(null); // Close panel after save
-                  }}
-                  onCancel={() => setSelectedCertAction(null)}
-                />
-              )}
-
+              {/* Show Pass Customization Panel when pass action is selected */}
               {selectedCertAction === 'pass' && (
                 <PassCustomizationPanel
                   currentConfig={passTemplateConfig}

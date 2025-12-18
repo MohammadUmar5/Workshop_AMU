@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Download, Award, Palette, X } from 'lucide-react';
+import { Download, Award } from 'lucide-react';
 import { colorPalette, fontOptions } from '../constants/constants';
 
 // --- Certificate Border Component ---
@@ -32,11 +32,19 @@ export const CertificateBorder = ({ borderStyle, children }) => {
   );
 };
 
-// --- Certificate Generator Component ---
-export const CertificateGenerator = ({ person, onClose, certBody, nameFont, sigFont, certBg, certBorder, certTitleFont }) => {
+// --- Certificate Generator Component (Fixed Template) ---
+export const CertificateGenerator = ({ person, onClose }) => {
   const certificateRef = useRef(null);
 
   if (!person) return null;
+
+  // Fixed configuration - no longer customizable
+  const certBody = 'for successfully participating in our workshop and demonstrating dedication to learning and growth.';
+  const nameFont = 'cursive';
+  const sigFont = 'cursive';
+  const certBg = 'White';
+  const certBorder = 'simple';
+  const certTitleFont = 'elegant-serif';
 
   // --- Download Handler ---
   const handleDownload = () => {
@@ -186,15 +194,9 @@ export const CertificateGenerator = ({ person, onClose, certBody, nameFont, sigF
   );
 };
 
-// --- Certificate Design Panel ---
+// --- Certificate Design Panel (Simplified - Fixed Template) ---
+// DEPRECATED: This component is no longer used as certificates use a fixed template
 export const CertificateDesigner = ({ 
-  certBody, setCertBody, 
-  nameFont, setNameFont, 
-  sigFont, setSigFont,
-  certBg, setCertBg,
-  certBorder, setCertBorder,
-  certTitleFont, setCertTitleFont,
-  threshold, setThreshold, 
   eligibleCount,
   onSendCertificates,
   certificatesSending,
@@ -202,105 +204,19 @@ export const CertificateDesigner = ({
 }) => {
   const pendingCount = eligibleParticipants.filter(p => !p.certificateSent).length;
 
-  const borderOptions = [
-    { name: 'Simple (Default)', value: 'simple' },
-    { name: 'Double', value: 'double' },
-    { name: 'Ornate (Gold)', value: 'ornate-gold' },
-    { name: 'None', value: 'none' },
-  ];
-
   return (
     <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-        <Palette className="h-6 w-6 mr-2 text-indigo-600" />
-        Customize Certificate
+        <Award className="h-6 w-6 mr-2 text-indigo-600" />
+        Send Certificates
       </h2>
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="cert-body" className="block text-sm font-medium text-gray-700">Certificate Body Text</label>
-          <textarea
-            id="cert-body"
-            rows="3"
-            value={certBody}
-            onChange={(e) => setCertBody(e.target.value)}
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="cert-title-font" className="block text-sm font-medium text-gray-700">Title Font</label>
-            <select
-              id="cert-title-font"
-              value={certTitleFont}
-              onChange={(e) => setCertTitleFont(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-            >
-              {fontOptions.map(font => (
-                <option key={font.value} value={font.value}>{font.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="cert-font" className="block text-sm font-medium text-gray-700">Participant Name Font</label>
-            <select
-              id="cert-font"
-              value={nameFont}
-              onChange={(e) => setNameFont(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-            >
-              {fontOptions.map(font => (
-                <option key={font.value} value={font.value}>{font.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="sig-font" className="block text-sm font-medium text-gray-700">Signature Font</label>
-            <select
-              id="sig-font"
-              value={sigFont}
-              onChange={(e) => setSigFont(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-            >
-              {fontOptions.map(font => (
-                <option key={font.value} value={font.value}>{font.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="cert-border" className="block text-sm font-medium text-gray-700">Border Style</label>
-            <select
-              id="cert-border"
-              value={certBorder}
-              onChange={(e) => setCertBorder(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-            >
-              {borderOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="cert-bg" className="block text-sm font-medium text-gray-700">Background Color</label>
-            <select
-              id="cert-bg"
-              value={certBg}
-              onChange={(e) => setCertBg(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-            >
-              {colorPalette.map(color => (
-                <option key={color.name} value={color.name}>{color.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
       
-      <div className="mt-6 pt-4 border-t border-gray-300">
+      <div className="mt-4">
         <h3 className="text-lg font-semibold text-gray-800">Certificate Eligibility</h3>
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm text-gray-600 mb-4">
           Certificates will be sent to participants who attended at least <strong>75%</strong> of the workshop duration after the workshop ends.
         </p>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-4">
           <div className="text-center bg-indigo-100 p-4 rounded-lg flex-1">
              <span className="block text-3xl font-bold text-indigo-700">{eligibleCount}</span>
              <span className="block text-sm font-medium text-indigo-600">Eligible Participants</span>
@@ -309,7 +225,7 @@ export const CertificateDesigner = ({
         </div>
         
         {/* Send Certificates Button */}
-        <div className="mt-4 flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div>
             <p className="text-sm font-medium text-gray-800">
               {pendingCount > 0 ? (

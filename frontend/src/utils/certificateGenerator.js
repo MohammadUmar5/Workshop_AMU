@@ -5,16 +5,14 @@ const USE_LEGACY = false;
 
 // Import legacy generator if needed
 
-// Server-side generation using Sharp
-const generateCertificateServer = async (participant, certificateConfig, workshopId = null) => {
+// Server-side generation using Sharp (fixed template)
+const generateCertificateServer = async (participant, workshopId = null) => {
   console.log('🎓 [FRONTEND] Generating certificate via backend...');
   console.log('   → Participant:', participant.name);
   console.log('   → Email:', participant.email);
-  console.log('   → Config:', certificateConfig);
+  console.log('   → Using fixed template');
   
   try {
-    const { certBody, nameFont, sigFont, certTitleFont } = certificateConfig;
-    
     console.log('   → Calling backend API: POST http://localhost:4000/api/certificates/generate');
     
     const response = await fetch('http://localhost:4000/api/certificates/generate', {
@@ -24,11 +22,7 @@ const generateCertificateServer = async (participant, certificateConfig, worksho
       },
       body: JSON.stringify({
         name: participant.name,
-        email: participant.email,
-        nameFont: nameFont,
-        certBody: certBody,
-        certTitleFont: certTitleFont,
-        sigFont: sigFont
+        email: participant.email
       }),
     });
 
@@ -52,8 +46,8 @@ const generateCertificateServer = async (participant, certificateConfig, worksho
   }
 };
 
-// Main export: Server-side certificate generation
-export const generateAndSendCertificate = async (participant, certificateConfig, workshopId = null) => {
+// Main export: Server-side certificate generation (fixed template)
+export const generateAndSendCertificate = async (participant, workshopId = null) => {
   // Create pending delivery log at START to prevent race conditions
   let deliveryLogId = null;
   if (workshopId && participant.id) {
@@ -71,7 +65,7 @@ export const generateAndSendCertificate = async (participant, certificateConfig,
   }
   
   try {
-    const result = await generateCertificateServer(participant, certificateConfig, workshopId);
+    const result = await generateCertificateServer(participant, workshopId);
     
     console.log('📊 [FRONTEND] Certificate result:', result);
     

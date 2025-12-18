@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Palette, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { colors } from "../theme/colors";
 import StatusDot from "./ui/StatusDot";
 
@@ -205,16 +205,9 @@ const MiddlePanel = ({
         </div>
       )}
 
-      {/* Customization List Items - Only show in certificates view */}
+      {/* Customization List Items - Only Pass customization available */}
       {currentView === "certificates" && (
         <div className="px-2 pt-2 pb-2 shrink-0">
-          <CustomizationListItem
-            icon={<Palette size={16} />}
-            label="Customize Certificate"
-            isSelected={selectedCertAction === "certificate"}
-            onClick={() => onSelectCertAction("certificate")}
-          />
-
           <CustomizationListItem
             icon={<FileText size={16} />}
             label="Customize Pass"

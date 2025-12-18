@@ -31,14 +31,13 @@ const getFontFamily = (fontValue) => {
   return fontMap[fontValue] || 'Noto Sans';
 };
 
-// REPLACE generateCertificate function with this:
-export async function generateCertificate({ 
-  name, 
-  nameFont = 'cursive',
-  certBody = 'for successfully participating in our workshop and demonstrating dedication to learning and growth.',
-  certTitleFont = 'elegant-serif',
-  sigFont = 'handwriting'
-}) {
+// Certificate generation with fixed template and fonts
+export async function generateCertificate({ name }) {
+  // Fixed configuration - no longer customizable
+  const nameFont = 'cursive';
+  const certBody = 'for successfully participating in our workshop and demonstrating dedication to learning and growth.';
+  const certTitleFont = 'elegant-serif';
+  const sigFont = 'handwriting';
   try {
     const templatePath = path.join(__dirname, '../templates/certificate-base.png');
     
@@ -105,29 +104,16 @@ export async function generateCertificate({
   }
 }
 
-// KEEP generateAndSendCertificate function EXACTLY AS IT IS - NO CHANGES
-export async function generateAndSendCertificate({
-  name,
-  email,
-  nameFont = 'cursive',
-  certBody = 'for successfully participating in our workshop and demonstrating dedication to learning and growth.',
-  certTitleFont = 'elegant-serif',
-  sigFont = 'handwriting'
-}) {
+// Generate and send certificate with fixed template
+export async function generateAndSendCertificate({ name, email }) {
   console.log('\n🎓 [BACKEND] Certificate generation request');
   console.log('   → Name:', name);
   console.log('   → Email:', email);
-  console.log('   → Fonts - Name:', nameFont, 'Title:', certTitleFont, 'Sig:', sigFont);
+  console.log('   → Using fixed template with default fonts');
   
   try {
     console.log('   → Generating certificate image with Sharp...');
-    const certificateBuffer = await generateCertificate({
-      name,
-      nameFont,
-      certBody,
-      certTitleFont,
-      sigFont
-    });
+    const certificateBuffer = await generateCertificate({ name });
 
     console.log('   → Certificate image generated successfully');
     console.log('   → Preparing email...');
