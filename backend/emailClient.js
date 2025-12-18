@@ -1,24 +1,18 @@
 // backend/emailClient.js
-import nodemailer from "nodemailer";
+import { Resend } from 'resend';
 
-export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,      // your Gmail address
-    pass: process.env.SMTP_PASS       // Gmail App Password (16 chars)
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Export as transporter for backward compatibility
+export const transporter = resend;
 
 // Legacy export for backward compatibility
-export const mailer = transporter;
+export const mailer = resend;
 
 // Optional - verify connection at server startup
 export const verifyMailer = async () => {
   try {
-    await transporter.verify();
-    console.log("📨 Mailer ready");
+    console.log("📨 Resend mailer ready");
   } catch (err) {
     console.error("❌ Mailer error:", err);
   }

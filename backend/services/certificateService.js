@@ -119,7 +119,7 @@ export async function generateAndSendCertificate({ name, email }) {
     console.log('   → Preparing email...');
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || process.env.SMTP_USER,
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
       to: email,
       subject: 'Workshop Certificate of Participation',
       text: `Dear ${name},\n\nCongratulations on completing the workshop!\n\nPlease find attached your Certificate of Participation. We hope you found the workshop valuable and look forward to seeing you at future events.\n\nBest regards,\nWorkshop Team\nOlympia Academia, AMU`,
@@ -135,24 +135,22 @@ export async function generateAndSendCertificate({ name, email }) {
       attachments: [
         {
           filename: `${name.replace(/ /g, '_')}_Certificate.png`,
-          content: certificateBuffer,
-          contentType: 'image/png'
+          content: certificateBuffer.toString('base64')
         }
       ]
     };
 
-    console.log('   → Sending email via SMTP...');
-    const info = await transporter.sendMail(mailOptions);
+    console.log('   → Sending email via Resend...');
+    const info = await transporter.emails.send(mailOptions);
     
     console.log('✅ [BACKEND] Certificate sent successfully!');
-    console.log('   → Message ID:', info.messageId);
+    console.log('   → Message ID:', info.id);
     console.log('   → To:', email);
     
     return { 
       success: true, 
       email,
-      messageId: info.messageId,
-      response: info.response 
+      messageId: info.id
     };
 
   } catch (error) {
