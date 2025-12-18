@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "build": "echo 'Building native dependencies...'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

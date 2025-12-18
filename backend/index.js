@@ -51,7 +51,10 @@ const upload = multer({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
 app.use(express.json({ limit: "10mb" }));
 
 verifyMailer(); // Check Gmail SMTP connection
@@ -425,5 +428,5 @@ app.get("/api/delivery-logs/:workshopId/stats", async (req, res) => {
   }
 });
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
