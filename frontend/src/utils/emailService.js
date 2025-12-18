@@ -4,9 +4,10 @@ export const sendPassEmail = async (emailData) => {
   console.log('   → Attachment size:', emailData.attachmentBase64 ? `${Math.round(emailData.attachmentBase64.length / 1024)}KB` : 'No attachment');
   
   try {
-    console.log('   → Making API call to backend: POST http://localhost:4000/api/send-email');
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/send-email`;
+    console.log('   → Making API call to backend: POST', apiUrl);
     
-    const response = await fetch('http://localhost:4000/api/send-email', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,9 +40,10 @@ export const sendCertificateEmail = async (emailData) => {
   console.log('   → Attachment size:', emailData.attachmentBase64 ? `${Math.round(emailData.attachmentBase64.length / 1024)}KB` : 'No attachment');
   
   try {
-    console.log('   → Making API call to backend: POST http://localhost:4000/api/send-email');
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/send-email`;
+    console.log('   → Making API call to backend: POST', apiUrl);
     
-    const response = await fetch('http://localhost:4000/api/send-email', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

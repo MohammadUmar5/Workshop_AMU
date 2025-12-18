@@ -46,15 +46,20 @@ export async function sendEmail(req, res) {
     console.log('   → From:', mailOptions.from);
     console.log('   → Resend API configured:', !!process.env.RESEND_API_KEY);
     
-    const info = await mailer.emails.send(mailOptions);
+    const { data, error } = await mailer.emails.send(mailOptions);
+
+    if (error) {
+      console.error('❌ [BACKEND] Resend error:', error);
+      throw new Error(error.message || 'Failed to send email via Resend');
+    }
 
     console.log('✅ [BACKEND] Email sent successfully!');
-    console.log('   → Message ID:', info.id);
+    console.log('   → Message ID:', data.id);
 
     return res.json({
       ok: true,
       email,
-      messageId: info.id
+      messageId: data.id
     });
 
   } catch (err) {

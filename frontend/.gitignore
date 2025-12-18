@@ -228,3 +228,7 @@ out
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase
+.firebase/
+firebase-debug.log

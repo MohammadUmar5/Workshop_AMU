@@ -141,16 +141,21 @@ export async function generateAndSendCertificate({ name, email }) {
     };
 
     console.log('   → Sending email via Resend...');
-    const info = await transporter.emails.send(mailOptions);
+    const { data, error } = await transporter.emails.send(mailOptions);
+    
+    if (error) {
+      console.error('❌ [BACKEND] Resend error:', error);
+      throw new Error(error.message || 'Failed to send certificate via Resend');
+    }
     
     console.log('✅ [BACKEND] Certificate sent successfully!');
-    console.log('   → Message ID:', info.id);
+    console.log('   → Message ID:', data.id);
     console.log('   → To:', email);
     
     return { 
       success: true, 
       email,
-      messageId: info.id
+      messageId: data.id
     };
 
   } catch (error) {

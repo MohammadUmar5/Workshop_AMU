@@ -13,9 +13,10 @@ const generateCertificateServer = async (participant, workshopId = null) => {
   console.log('   → Using fixed template');
   
   try {
-    console.log('   → Calling backend API: POST http://localhost:4000/api/certificates/generate');
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/certificates/generate`;
+    console.log('   → Calling backend API: POST', apiUrl);
     
-    const response = await fetch('http://localhost:4000/api/certificates/generate', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
