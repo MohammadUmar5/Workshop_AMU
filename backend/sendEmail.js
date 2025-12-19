@@ -25,9 +25,9 @@ export async function sendEmail(req, res) {
       return res.status(400).json({ ok: false, error: "Missing required fields (email, subject, or text)" });
     }
 
-    console.log('   → Preparing email with Resend...');
+    console.log('   → Preparing email with nodemailer...');
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      from: `"Workshop Team" <${process.env.SMTP_USER}>`,
       to: email,
       subject,
       text,
@@ -36,30 +36,27 @@ export async function sendEmail(req, res) {
         ? [
             {
               filename,
-              content: attachmentBase64.split(",")[1] // remove prefix if present
+              content: attachmentBase64.split(",")[1], // remove prefix if present
+              encoding: "base64"
             }
           ]
         : []
     };
 
-    console.log('   → Sending email via Resend...');
-    console.log('   → From:', mailOptions.from);
-    console.log('   → Resend API configured:', !!process.env.RESEND_API_KEY);
+    console.log('   → Sending email via SMTP...');
+    console.log('   → SMTP User:', process.env.SMTP_USER);
+    console.log('   → SMTP configured:', !!process.env.SMTP_PASS);
     
-    const { data, error } = await mailer.emails.send(mailOptions);
-
-    if (error) {
-      console.error('❌ [BACKEND] Resend error:', error);
-      throw new Error(error.message || 'Failed to send email via Resend');
-    }
+    const info = await mailer.sendMail(mailOptions);
 
     console.log('✅ [BACKEND] Email sent successfully!');
-    console.log('   → Message ID:', data.id);
+    console.log('   → Message ID:', info.messageId);
+    console.log('   → Response:', info.response);
 
     return res.json({
       ok: true,
       email,
-      messageId: data.id
+      messageId: info.messageId
     });
 
   } catch (err) {

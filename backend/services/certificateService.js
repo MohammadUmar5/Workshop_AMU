@@ -62,7 +62,7 @@ export async function generateCertificate({ name }) {
     const ctx = canvas.getContext('2d');
     
     // Configure text rendering (scale font size)
-    const fontSize = 50 * scale;  // 72px base * 2 for display * scale
+    const fontSize = 33 * scale;  // 72px base * 2 for display * scale
     const fontFamily = getFontFamily(nameFont);
     ctx.font = `normal ${fontSize}px "${fontFamily}"`;
     ctx.fillStyle = '#111827';
@@ -119,7 +119,7 @@ export async function generateAndSendCertificate({ name, email }) {
     console.log('   → Preparing email...');
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      from: process.env.EMAIL_USER || process.env.SMTP_USER,
       to: email,
       subject: 'Workshop Certificate of Participation',
       text: `Dear ${name},\n\nCongratulations on completing the workshop!\n\nPlease find attached your Certificate of Participation. We hope you found the workshop valuable and look forward to seeing you at future events.\n\nBest regards,\nWorkshop Team\nOlympia Academia, AMU`,
@@ -135,27 +135,24 @@ export async function generateAndSendCertificate({ name, email }) {
       attachments: [
         {
           filename: `${name.replace(/ /g, '_')}_Certificate.png`,
-          content: certificateBuffer.toString('base64')
+          content: certificateBuffer,
+          contentType: 'image/png'
         }
       ]
     };
 
-    console.log('   → Sending email via Resend...');
-    const { data, error } = await transporter.emails.send(mailOptions);
-    
-    if (error) {
-      console.error('❌ [BACKEND] Resend error:', error);
-      throw new Error(error.message || 'Failed to send certificate via Resend');
-    }
+    console.log('   → Sending email via SMTP...');
+    const info = await transporter.sendMail(mailOptions);
     
     console.log('✅ [BACKEND] Certificate sent successfully!');
-    console.log('   → Message ID:', data.id);
+    console.log('   → Message ID:', info.messageId);
     console.log('   → To:', email);
     
     return { 
       success: true, 
       email,
-      messageId: data.id
+      messageId: info.messageId,
+      response: info.response 
     };
 
   } catch (error) {
